@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { MultiModalInputBar } from "@/components/ui/MultiModalInputBar";
 import { Button } from "@/components/ui/Button";
 
 const DIMENSIONS = [
@@ -23,27 +23,6 @@ export function EmptyState({
   onFileUpload,
   onLinkPaste,
 }: EmptyStateProps) {
-  const [inputValue, setInputValue] = useState("");
-
-  const handleSend = () => {
-    const trimmed = inputValue.trim();
-    if (trimmed) {
-      onInputStart(trimmed);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) onFileUpload?.(file);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
       <div className="flex max-w-2xl flex-col items-center gap-12">
@@ -70,17 +49,6 @@ export function EmptyState({
         <div className="flex flex-col items-center gap-4">
           <p className="text-sm font-medium text-gray-600">💡 你可以这样开始：</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <span className="inline-flex items-center gap-2 rounded-md border-2 border-gray-300 px-4 py-3 text-sm transition-colors duration-150 hover:border-black hover:bg-gray-50">
-                📎 上传品牌手册 PDF
-              </span>
-            </label>
             <Button
               variant="secondary"
               size="md"
@@ -96,20 +64,12 @@ export function EmptyState({
       </div>
 
       <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
-        <div className="flex items-center gap-2 rounded-lg border-2 border-gray-300 bg-white p-2 transition-colors focus-within:border-black">
-          <span className="shrink-0 text-gray-400 text-sm">➕</span>
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="请输入关于你的品牌信息，越详细越好..."
-            className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-black outline-none placeholder:text-gray-400"
-          />
-          <Button size="sm" onClick={handleSend} disabled={!inputValue.trim()}>
-            发送
-          </Button>
-        </div>
+        <MultiModalInputBar
+          placeholder="请输入关于你的品牌信息，越详细越好..."
+          submitLabel="发送"
+          onSubmit={onInputStart}
+          onFileUpload={onFileUpload}
+        />
       </div>
     </div>
   );

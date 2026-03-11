@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ChannelsBreadcrumb } from "@/components/channels/ChannelsBreadcrumb";
 import { ChannelsEmptyState } from "@/components/channels/ChannelsEmptyState";
 import { ChannelsProcessingState } from "@/components/channels/ChannelsProcessingState";
 import { ChannelsChatCanvasState } from "@/components/channels/ChannelsChatCanvasState";
@@ -88,7 +87,6 @@ export default function ChannelsPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <ChannelsBreadcrumb />
       {effectiveState === "empty_suggestion" && (
         <ChannelsEmptyState
           suggestions={PLATFORM_SUGGESTIONS}

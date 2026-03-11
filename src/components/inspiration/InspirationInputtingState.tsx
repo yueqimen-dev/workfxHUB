@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { MultiModalInputBar } from "@/components/ui/MultiModalInputBar";
 
 interface InspirationInputtingStateProps {
   pastedContent: string;
@@ -12,14 +11,8 @@ export function InspirationInputtingState({
   pastedContent,
   onDeconstruct,
 }: InspirationInputtingStateProps) {
-  const [optionalNote, setOptionalNote] = useState("");
-
-  const handleDeconstruct = () => {
-    onDeconstruct(optionalNote.trim() || undefined);
-  };
-
   return (
-    <div className="flex min-h-[calc(100vh-7rem)] flex-col px-6 py-16">
+    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col px-6 py-16">
       <div className="mx-auto flex max-w-2xl flex-col gap-10">
         <div className="text-center">
           <h1 className="font-display text-2xl font-bold tracking-tight text-black md:text-3xl">
@@ -38,18 +31,12 @@ export function InspirationInputtingState({
       </div>
 
       <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
-        <div className="flex items-center justify-between gap-2 rounded-lg border-2 border-gray-300 bg-white p-2 transition-colors focus-within:border-black">
-          <input
-            type="text"
-            value={optionalNote}
-            onChange={(e) => setOptionalNote(e.target.value)}
-            placeholder="还能补充你想对AI说的要求(选填)..."
-            className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-black outline-none placeholder:text-gray-400"
-          />
-          <Button size="md" onClick={handleDeconstruct}>
-            ✨ 让AI智能拆解
-          </Button>
-        </div>
+        <MultiModalInputBar
+          placeholder="还能补充你想对AI说的要求(选填)..."
+          onSubmit={(t) => onDeconstruct(t.trim() || undefined)}
+          primaryLabel="✨ 让AI智能拆解"
+          onPrimaryClick={(v) => onDeconstruct(v || undefined)}
+        />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { MultiModalInputBar } from "@/components/ui/MultiModalInputBar";
 import type { InspirationAsset } from "@/lib/inspiration-state";
 
 interface InspirationVaultDashboardProps {
@@ -17,17 +18,9 @@ export function InspirationVaultDashboard({
   onUseTemplate,
   onViewDetail,
 }: InspirationVaultDashboardProps) {
-  const [feedInput, setFeedInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("全部");
   const [platformFilter, setPlatformFilter] = useState("全部");
-
-  const handleFeedSubmit = () => {
-    const trimmed = feedInput.trim();
-    if (trimmed) {
-      onAddMore(trimmed);
-      setFeedInput("");
-    }
-  };
 
   const typeLabels: Record<string, string> = {
     hook: "🪝 模板",
@@ -36,21 +29,26 @@ export function InspirationVaultDashboard({
   };
 
   return (
-    <div className="min-h-[calc(100vh-7rem)] px-6 py-8">
+    <div className="min-h-[calc(100vh-3.5rem)] px-6 py-8">
       <div className="mx-auto max-w-5xl">
-        {/* 随手投喂口 */}
-        <div className="mb-6 flex gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+        {/* 搜索 */}
+        <div className="mb-6 flex justify-end">
           <input
             type="text"
-            value={feedInput}
-            onChange={(e) => setFeedInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleFeedSubmit()}
-            placeholder="➕ 粘贴素材链接或文本..."
-            className="min-w-0 flex-1 rounded-md border-2 border-gray-300 bg-white px-3 py-2 text-sm text-black outline-none placeholder:text-gray-400 focus:border-black"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="🔍 搜索..."
+            className="w-48 rounded-md border-2 border-gray-300 px-3 py-1.5 text-sm text-black outline-none placeholder:text-gray-400 focus:border-black"
           />
-          <Button size="sm" onClick={handleFeedSubmit} disabled={!feedInput.trim()}>
-            🚀 存入
-          </Button>
+        </div>
+
+        {/* 随手投喂口 */}
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <MultiModalInputBar
+            placeholder="➕ 粘贴素材链接或文本..."
+            submitLabel="🚀 存入"
+            onSubmit={onAddMore}
+          />
         </div>
 
         {/* 筛选 */}

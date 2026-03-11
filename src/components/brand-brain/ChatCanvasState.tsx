@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/Button";
+import { MultiModalInputBar } from "@/components/ui/MultiModalInputBar";
 import type { BrandArchive, ChatMessage } from "@/lib/brand-brain-state";
 
 interface ChatCanvasStateProps {
@@ -42,35 +43,6 @@ export function ChatCanvasState({ archive, onConfirm }: ChatCanvasStateProps) {
     }
   }, [selectedText]);
 
-  const handleSend = useCallback(() => {
-    if (!inputValue.trim()) return;
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      content: inputValue,
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setInputValue("");
-    // 模拟 AI 回复
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: "收到！已为您在右侧面板实时更新了目标人群信息。",
-        },
-      ]);
-    }, 800);
-  }, [inputValue]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
       <div className="flex w-[45%] min-w-[320px] flex-col border-r border-gray-200 bg-white">
@@ -101,19 +73,34 @@ export function ChatCanvasState({ archive, onConfirm }: ChatCanvasStateProps) {
           ))}
         </div>
         <div className="shrink-0 border-t border-gray-200 bg-white p-4">
-          <div className="flex items-end gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
+          <div className="space-y-2">
+            <MultiModalInputBar
               placeholder="选中右侧文本进行修改..."
-              className="flex-1 rounded-md border-2 border-gray-300 px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none focus:ring-[3px] focus:ring-black/10 placeholder:text-gray-400"
+              submitLabel="发送"
+              onSubmit={(text) => {
+                if (text.trim()) {
+                  const userMsg: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: "user",
+                    content: text,
+                  };
+                  setMessages((prev) => [...prev, userMsg]);
+                  setTimeout(() => {
+                    setMessages((prev) => [
+                      ...prev,
+                      {
+                        id: (Date.now() + 1).toString(),
+                        role: "assistant",
+                        content: "收到！已为您在右侧面板实时更新了目标人群信息。",
+                      },
+                    ]);
+                  }, 800);
+                }
+              }}
+              value={inputValue}
+              onChange={setInputValue}
+              compact
             />
-            <Button size="md" onClick={handleSend} disabled={!inputValue.trim()}>
-              发送
-            </Button>
-          </div>
           {selectedText && (
             <div className="mt-2 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
               <span className="flex-1 truncate text-xs text-gray-600">
@@ -125,6 +112,7 @@ export function ChatCanvasState({ archive, onConfirm }: ChatCanvasStateProps) {
               </Button>
             </div>
           )}
+          </div>
         </div>
       </div>
 

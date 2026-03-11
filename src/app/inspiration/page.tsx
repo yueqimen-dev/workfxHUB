@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { InspirationBreadcrumb } from "@/components/inspiration/InspirationBreadcrumb";
 import { InspirationEmptyState } from "@/components/inspiration/InspirationEmptyState";
 import { InspirationInputtingState } from "@/components/inspiration/InspirationInputtingState";
 import { InspirationProcessingState } from "@/components/inspiration/InspirationProcessingState";
@@ -97,8 +96,6 @@ export default function InspirationPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <InspirationBreadcrumb showSearch={effectiveState === "vault_dashboard"} />
-
       {effectiveState === "empty" && (
         <InspirationEmptyState onSubmit={handleEmptySubmit} />
       )}

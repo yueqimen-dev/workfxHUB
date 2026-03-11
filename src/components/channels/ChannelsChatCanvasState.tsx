@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
+import { MultiModalInputBar } from "@/components/ui/MultiModalInputBar";
 import type { AccountConfig, ChatMessage } from "@/lib/channels-state";
 import { PLATFORM_LABELS } from "@/lib/channels-state";
 
@@ -28,12 +29,12 @@ export function ChannelsChatCanvasState({
   const [config, setConfig] = useState(accountConfig);
   const [showBindModal, setShowBindModal] = useState(false);
 
-  const handleSend = useCallback(() => {
-    if (!inputValue.trim()) return;
+  const handleSend = useCallback((text: string) => {
+    if (!text.trim()) return;
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: inputValue,
+      content: text,
     };
     setMessages((prev) => [...prev, userMsg]);
     setInputValue("");
@@ -57,14 +58,7 @@ export function ChannelsChatCanvasState({
         },
       }));
     }, 800);
-  }, [inputValue]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+  }, []);
 
   const handleBindClick = () => {
     setShowBindModal(true);
@@ -76,7 +70,7 @@ export function ChannelsChatCanvasState({
   };
 
   return (
-    <div className="flex h-[calc(100vh-7rem)]">
+    <div className="flex h-[calc(100vh-3.5rem)]">
       <div className="flex w-[45%] min-w-[320px] flex-col border-r border-gray-200 bg-white">
         <div className="shrink-0 border-b border-gray-200 px-4 py-3">
           <h3 className="font-display text-sm font-semibold text-black">
@@ -102,19 +96,14 @@ export function ChannelsChatCanvasState({
           ))}
         </div>
         <div className="shrink-0 border-t border-gray-200 bg-white p-4">
-          <div className="flex items-end gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="选中右侧文本微调画风..."
-              className="flex-1 rounded-md border-2 border-gray-300 px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none focus:ring-[3px] focus:ring-black/10 placeholder:text-gray-400"
-            />
-            <Button size="md" onClick={handleSend} disabled={!inputValue.trim()}>
-              发送
-            </Button>
-          </div>
+          <MultiModalInputBar
+            placeholder="选中右侧文本微调画风..."
+            submitLabel="发送"
+            onSubmit={handleSend}
+            value={inputValue}
+            onChange={setInputValue}
+            compact
+          />
         </div>
       </div>
 

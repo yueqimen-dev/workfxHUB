@@ -1,31 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { MultiModalInputBar } from "@/components/ui/MultiModalInputBar";
 
 interface InspirationEmptyStateProps {
   onSubmit: (content: string) => void;
 }
 
 export function InspirationEmptyState({ onSubmit }: InspirationEmptyStateProps) {
-  const [inputValue, setInputValue] = useState("");
-
-  const handleSubmit = () => {
-    const trimmed = inputValue.trim();
-    if (trimmed) {
-      onSubmit(trimmed);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
   return (
-    <div className="flex min-h-[calc(100vh-7rem)] flex-col items-center px-6 py-16">
+    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
       <div className="flex max-w-2xl flex-col items-center gap-10">
         <div className="text-center">
           <h1 className="font-display text-2xl font-bold tracking-tight text-black md:text-3xl">
@@ -58,20 +41,11 @@ export function InspirationEmptyState({ onSubmit }: InspirationEmptyStateProps) 
       </div>
 
       <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
-        <div className="flex items-center gap-2 rounded-lg border-2 border-gray-300 bg-white p-2 transition-colors focus-within:border-black">
-          <span className="shrink-0 text-sm text-gray-400">➕ 文件/链接</span>
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="请输入你收集到的营销灵感..."
-            className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-black outline-none placeholder:text-gray-400"
-          />
-          <Button size="sm" onClick={handleSubmit} disabled={!inputValue.trim()}>
-            🚀 存入
-          </Button>
-        </div>
+        <MultiModalInputBar
+          placeholder="请输入你收集到的营销灵感..."
+          submitLabel="🚀 存入"
+          onSubmit={onSubmit}
+        />
       </div>
     </div>
   );

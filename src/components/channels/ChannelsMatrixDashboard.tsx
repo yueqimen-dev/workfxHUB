@@ -44,7 +44,7 @@ export function ChannelsMatrixDashboard({
   const totalPlatforms = Object.keys(byPlatform).length;
 
   return (
-    <div className="min-h-[calc(100vh-7rem)] px-6 py-8">
+    <div className="min-h-[calc(100vh-3.5rem)] px-6 py-8">
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold text-black">
