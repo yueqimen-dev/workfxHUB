@@ -10,7 +10,7 @@ interface SavedPreviewStateProps {
 
 export function SavedPreviewState({ archive, onEdit }: SavedPreviewStateProps) {
   return (
-    <div className="min-h-[calc(100vh-7rem)] px-6 py-12">
+    <div className="min-h-[calc(100vh-3.5rem)] px-6 py-12">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8 flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-6 py-4">
           <div>

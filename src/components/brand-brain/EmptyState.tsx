@@ -45,7 +45,7 @@ export function EmptyState({
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-7rem)] flex-col items-center px-6 py-16">
+    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
       <div className="flex max-w-2xl flex-col items-center gap-12">
         <div className="text-center">
           <h1 className="font-display text-3xl font-bold tracking-tight text-black md:text-4xl">

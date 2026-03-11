@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { BrandBrainHeader } from "@/components/brand-brain/BrandBrainHeader";
 import { EmptyState } from "@/components/brand-brain/EmptyState";
 import { InputtingState } from "@/components/brand-brain/InputtingState";
 import { ProcessingState } from "@/components/brand-brain/ProcessingState";
@@ -130,10 +129,6 @@ export default function BrandBrainPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <BrandBrainHeader
-        state={state}
-        onEdit={state === "saved_preview" ? handleEdit : undefined}
-      />
       <main className="flex-1">
         {state === "empty" && (
           <EmptyState

@@ -19,7 +19,7 @@ export function ProcessingState() {
   }, []);
 
   return (
-    <div className="relative flex min-h-[calc(100vh-7rem)] flex-col items-center justify-center px-6">
+    <div className="relative flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-6">
       <div className="flex max-w-md flex-col items-center gap-10">
         <div className="text-center">
           <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 animate-pulse">

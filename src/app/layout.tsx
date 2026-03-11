@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LeftSidebar } from "@/components/layout/LeftSidebar";
 import { TopTabs } from "@/components/navigation/TopTabs";
 import "./globals.css";
 
@@ -14,9 +15,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="flex min-h-screen flex-col">
-        <TopTabs />
-        <main className="flex-1">{children}</main>
+      <body className="flex min-h-screen flex-row">
+        <LeftSidebar />
+        <div className="flex min-h-screen flex-1 flex-col overflow-auto">
+          <TopTabs />
+          <main className="flex-1 bg-white">{children}</main>
+        </div>
       </body>
     </html>
   );

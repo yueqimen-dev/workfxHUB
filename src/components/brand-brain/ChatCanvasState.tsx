@@ -72,7 +72,7 @@ export function ChatCanvasState({ archive, onConfirm }: ChatCanvasStateProps) {
   };
 
   return (
-    <div className="flex h-[calc(100vh-7rem)]">
+    <div className="flex h-[calc(100vh-3.5rem)]">
       <div className="flex w-[45%] min-w-[320px] flex-col border-r border-gray-200 bg-white">
         <div className="shrink-0 border-b border-gray-200 px-4 py-3">
           <h3 className="font-display text-sm font-semibold text-black">💬 品牌构建助手</h3>
