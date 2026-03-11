@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WorkfxHUB</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <a href="#" class="sidebar-logo" data-tab="brand">
+        <div class="logo-icon">W</div>
+        <div>
+          <p class="sidebar-title">WorkfxHUB</p>
+          <p class="sidebar-sub">workfxhub.com</p>
+        </div>
+      </a>
+      <div class="status-cards">
+        <div class="status-card"><span>0</span><span>TOTAL</span></div>
+        <div class="status-card"><span>0</span><span>FIXED</span></div>
+        <div class="status-card"><span>0</span><span>PENDING</span></div>
+      </div>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-bottom">
+        <div class="item" style="margin-bottom:0.5rem"><span>Explore</span></div>
+        <div class="sub-plan" style="margin-bottom:1rem">
+          <div class="sub-plan-header"><span>Free</span><button class="upgrade-btn">Upgrade</button></div>
+          <div class="progress-bar"><div class="progress-fill"></div></div>
+          <p class="progress-text">0 / 200</p>
+        </div>
+        <button class="item">中文</button>
+        <button class="item">我的账号</button>
+      </div>
+    </aside>
+
+    <div class="main-wrap">
+      <nav class="tabs">
+        <div class="tabs-inner">
+          <a href="#brand" class="tab active" data-tab="brand">品牌大脑</a>
+          <a href="#channels" class="tab" data-tab="channels">渠道账号</a>
+          <a href="#inspiration" class="tab" data-tab="inspiration">营销灵感库</a>
+        </div>
+      </nav>
+
+      <main class="content">
+        <!-- 品牌大脑 -->
+        <section id="page-brand" class="page active">
+          <div id="brand-empty" class="page-state">
+            <div class="page-inner">
+              <h1 class="page-title">✨ 欢迎构建你的专属【品牌知识库】 ✨</h1>
+              <p class="page-desc">"把关于品牌的一切都丢给我，我来帮你提炼品牌核心基因"</p>
+              <div class="dims">
+                <span class="dim-tag">基础身份</span><span class="dim-tag">目标人群</span>
+                <span class="dim-tag">文本语感</span><span class="dim-tag">视觉审美</span>
+                <span class="dim-tag">排他禁忌</span><span class="dim-tag">营销日历</span>
+              </div>
+              <div class="quick-actions">
+                <p>💡 你可以这样开始：</p>
+                <button class="btn btn-secondary btn-md" id="brand-link-btn">🔗 粘贴品牌官网/公众号链接</button>
+              </div>
+            </div>
+            <div class="input-bar-wrap">
+              <div class="input-bar" data-submit="brand-send">
+                <label><input type="file" accept=".pdf,.doc,.docx,.txt" data-upload="brand" /><span>📎</span></label>
+                <label><input type="file" accept="image/*" data-upload="brand" /><span>🖼️</span></label>
+                <button type="button" class="voice-btn" title="语音输入">🎤</button>
+                <input type="text" placeholder="请输入关于你的品牌信息，越详细越好..." data-input="brand" />
+                <button class="btn btn-primary btn-sm" data-send="brand">发送</button>
+              </div>
+            </div>
+          </div>
+          <div id="brand-inputting" class="page-state hidden">
+            <div class="page-inner">
+              <h1 class="page-title">✨ 欢迎构建你的专属【品牌知识库】 ✨</h1>
+              <div class="items-list">
+                <p>已接收的内容：</p>
+                <div id="brand-items"></div>
+              </div>
+            </div>
+            <div class="input-bar-wrap">
+              <div class="input-bar" data-submit="brand-add">
+                <label><input type="file" accept=".pdf,.doc,.docx,.txt,image/*" data-upload="brand-more" /><span>📎</span></label>
+                <label><input type="file" accept="image/*" data-upload="brand-more" /><span>🖼️</span></label>
+                <button type="button" class="voice-btn">🎤</button>
+                <input type="text" placeholder="还可以继续添加..." data-input="brand-more" />
+                <button class="btn btn-primary btn-md" id="brand-parse-btn">🚀 立即解析</button>
+              </div>
+            </div>
+          </div>
+          <div id="brand-processing" class="page-state hidden">
+            <div class="processing">
+              <div class="spinner"></div>
+              <p>正在解析品牌信息...</p>
+            </div>
+          </div>
+          <div id="brand-chat" class="page-state hidden">
+            <div class="chat-layout">
+              <div class="chat-left">
+                <div class="chat-header">💬 品牌构建助手</div>
+                <div class="chat-messages" id="brand-messages"></div>
+                <div class="chat-input-wrap">
+                  <div class="input-bar" data-submit="brand-chat" style="border:2px solid var(--gray-300)">
+                    <label><input type="file" accept=".pdf,.doc,.docx,.txt" /><span>📎</span></label>
+                    <label><input type="file" accept="image/*" /><span>🖼️</span></label>
+                    <button type="button" class="voice-btn">🎤</button>
+                    <input type="text" placeholder="选中右侧文本进行修改..." data-input="brand-chat" />
+                    <button class="btn btn-primary btn-sm" data-send="brand-chat">发送</button>
+                  </div>
+                </div>
+              </div>
+              <div class="chat-right">
+                <div class="chat-right-header">
+                  <span>📄 品牌结构化档案 v1.0</span>
+                  <button class="btn btn-primary btn-sm" id="brand-confirm">✅ 确认并封版记忆</button>
+                </div>
+                <div class="chat-right-body" id="brand-archive"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 渠道账号 -->
+        <section id="page-channels" class="page">
+          <div id="channels-empty" class="page-state">
+            <div class="page-inner">
+              <h1 class="page-title">🌍 品牌基建已就绪！接下来，我们要去哪个海外阵地发声？</h1>
+              <div class="items-list">
+                <p>💡 AI 智能推荐 (基于您的品牌调性)：</p>
+                <div class="suggestion"><span class="suggestion-icon">📷</span><div class="suggestion-content"><p>Instagram: 高曝光视觉内容</p></div></div>
+                <div class="suggestion"><span class="suggestion-icon">🎵</span><div class="suggestion-content"><p>TikTok: 短视频爆款</p></div></div>
+              </div>
+              <p class="page-desc">👇 请告诉我您想先做哪个平台？它的定位和画风是怎样的？</p>
+            </div>
+            <div class="input-bar-wrap">
+              <div class="input-bar" data-submit="channels-send">
+                <label><input type="file" accept=".pdf,.doc,.docx,.txt" /><span>📎</span></label>
+                <label><input type="file" accept="image/*" /><span>🖼️</span></label>
+                <button type="button" class="voice-btn">🎤</button>
+                <input type="text" placeholder='比如："我们想做 Instagram..."' data-input="channels" />
+                <button class="btn btn-primary btn-sm" data-send="channels">发送</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 营销灵感库 -->
+        <section id="page-inspiration" class="page">
+          <div id="inspiration-empty" class="page-state">
+            <div class="page-inner">
+              <h1 class="page-title">💡 欢迎来到你的【专属爆款弹药库】💡</h1>
+              <p class="page-desc">"不要让刷到的好创意溜走，丢给我，我帮你变成可复用模板"</p>
+              <div class="items-list">
+                <p>👇 你可以这样开始建立你的灵感库：</p>
+                <div class="item-card"><span>🔗</span><span>粘贴一个爆款 TikTok/IG 视频链接</span></div>
+                <div class="item-card"><span>📝</span><span>丢入一段你觉得很抓人的竞品文案前三秒</span></div>
+                <div class="item-card"><span>🖼️</span><span>上传一张排版绝佳的 Instagram 截图</span></div>
+              </div>
+            </div>
+            <div class="input-bar-wrap">
+              <div class="input-bar" data-submit="inspiration-send">
+                <label><input type="file" accept=".pdf,.doc,.docx,.txt" /><span>📎</span></label>
+                <label><input type="file" accept="image/*" /><span>🖼️</span></label>
+                <button type="button" class="voice-btn">🎤</button>
+                <input type="text" placeholder="请输入你收集到的营销灵感..." data-input="inspiration" />
+                <button class="btn btn-primary btn-sm" data-send="inspiration">🚀 存入</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
