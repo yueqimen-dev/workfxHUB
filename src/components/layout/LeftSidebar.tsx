@@ -44,8 +44,12 @@ export function LeftSidebar() {
         ))}
       </div>
 
-      {/* 占位 - 侧边栏中部 */}
-      <div className="flex-1" />
+      {/* WorkfxHUB 栏目 */}
+      <div className="flex-1 p-4">
+        <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-3">
+          <span className="text-sm font-semibold text-black">WorkfxHUB</span>
+        </div>
+      </div>
 
       {/* Bottom Section */}
       <div className="border-t border-gray-200 p-4 space-y-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MultiModalInputBar } from "@/components/ui/MultiModalInputBar";
 
 const PROCESSING_MESSAGES = [
   "正在阅读您的品牌手册...",
@@ -19,7 +20,7 @@ export function ProcessingState() {
   }, []);
 
   return (
-    <div className="relative flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-6">
+    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
       <div className="flex max-w-md flex-col items-center gap-10">
         <div className="text-center">
           <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 animate-pulse">
@@ -53,8 +54,13 @@ export function ProcessingState() {
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white px-6 py-4">
-        <p className="text-center text-sm text-gray-400">输入框暂时不可用</p>
+      <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
+        <MultiModalInputBar
+          placeholder="✨ 正在深度解析您的品牌资料中，请稍候..."
+          submitLabel="⏳"
+          onSubmit={() => {}}
+          disabled
+        />
       </div>
     </div>
   );

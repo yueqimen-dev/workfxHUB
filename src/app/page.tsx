@@ -127,9 +127,41 @@ export default function BrandBrainPage() {
     setState("chat_canvas");
   }, []);
 
+  const DEBUG_STATES: { key: BrandBrainState; label: string }[] = [
+    { key: "empty", label: "1. 空状态" },
+    { key: "inputting", label: "2. 投喂中" },
+    { key: "processing", label: "3. 解析中" },
+    { key: "chat_canvas", label: "4. 对话+档案" },
+    { key: "chat_canvas_4_1", label: "4.1 极度干瘪" },
+    { key: "chat_canvas_4_2", label: "4.2 骨架无血肉" },
+    { key: "chat_canvas_4_3", label: "4.3 信息丰满" },
+    { key: "chat_canvas_4_4", label: "4.4 局部微调" },
+    { key: "chat_canvas_4_5", label: "4.5 异常边界" },
+    { key: "saved_preview", label: "5. 已保存" },
+  ];
+
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <main className="flex-1">
+        {/* Debug: 切换页面状态 */}
+        <div className="sticky top-14 z-40 flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2">
+          <span className="text-xs font-medium text-gray-500">Debug 切换:</span>
+          {DEBUG_STATES.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setState(key)}
+              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                state === key
+                  ? "bg-black text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {state === "empty" && (
           <EmptyState
             onInputStart={handleInputStart}
@@ -148,6 +180,13 @@ export default function BrandBrainPage() {
         {state === "processing" && <ProcessingState />}
         {state === "chat_canvas" && (
           <ChatCanvasState archive={archive} onConfirm={handleConfirm} />
+        )}
+        {["chat_canvas_4_1", "chat_canvas_4_2", "chat_canvas_4_3", "chat_canvas_4_4", "chat_canvas_4_5"].includes(state) && (
+          <ChatCanvasState
+            archive={archive}
+            onConfirm={handleConfirm}
+            variant={state.replace("chat_canvas_", "").replace("_", ".") as "4.1" | "4.2" | "4.3" | "4.4" | "4.5"}
+          />
         )}
         {state === "saved_preview" && (
           <SavedPreviewState archive={archive} onEdit={handleEdit} />

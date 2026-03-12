@@ -3,7 +3,14 @@ export type BrandBrainState =
   | "inputting"
   | "processing"
   | "chat_canvas"
+  | "chat_canvas_4_1"
+  | "chat_canvas_4_2"
+  | "chat_canvas_4_3"
+  | "chat_canvas_4_4"
+  | "chat_canvas_4_5"
   | "saved_preview";
+
+export type ChatCanvasVariant = "default" | "4.1" | "4.2" | "4.3" | "4.4" | "4.5";
 
 export interface UploadedItem {
   id: string;
