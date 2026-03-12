@@ -4,7 +4,7 @@ export type ChannelsState =
   | "chat_canvas_bind"
   | "matrix_dashboard";
 
-export type PlatformType = "instagram" | "tiktok" | "x";
+export type PlatformType = "instagram" | "tiktok" | "x" | "blog";
 
 export type AccountBindStatus = "bound" | "draft";
 
@@ -63,10 +63,12 @@ export const PLATFORM_LABELS: Record<PlatformType, string> = {
   instagram: "Instagram",
   tiktok: "TikTok",
   x: "X (Twitter)",
+  blog: "官方 Blog",
 };
 
 export const PLATFORM_ICONS: Record<PlatformType, string> = {
   instagram: "📷",
   tiktok: "🎵",
   x: "🐦",
+  blog: "✍️",
 };

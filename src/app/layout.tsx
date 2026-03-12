@@ -15,11 +15,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="flex min-h-screen flex-row">
-        <LeftSidebar />
-        <div className="flex min-h-screen flex-1 flex-col overflow-auto">
-          <TopTabs />
-          <main className="flex-1 bg-white">{children}</main>
+      <body className="min-h-screen bg-white">
+        <div className="flex min-h-screen w-full flex-row">
+          <LeftSidebar />
+          <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-auto">
+            <TopTabs />
+            <main className="flex min-h-[calc(100vh-3.5rem)] flex-1 flex-col overflow-auto bg-white">{children}</main>
+          </div>
         </div>
       </body>
     </html>
