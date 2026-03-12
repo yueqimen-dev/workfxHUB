@@ -132,10 +132,8 @@ export default function BrandBrainPage() {
     { key: "inputting", label: "2. 投喂中" },
     { key: "processing", label: "3. 解析中" },
     { key: "chat_canvas", label: "4. 对话+档案" },
-    { key: "chat_canvas_4_1", label: "4.1 极度干瘪" },
-    { key: "chat_canvas_4_2", label: "4.2 骨架无血肉" },
+    { key: "chat_canvas_4_1", label: "4.1 信息不足" },
     { key: "chat_canvas_4_3", label: "4.3 信息丰满" },
-    { key: "chat_canvas_4_4", label: "4.4 局部微调" },
     { key: "chat_canvas_4_5", label: "4.5 异常边界" },
     { key: "saved_preview", label: "5. 已保存" },
   ];
@@ -181,11 +179,11 @@ export default function BrandBrainPage() {
         {state === "chat_canvas" && (
           <ChatCanvasState archive={archive} onConfirm={handleConfirm} />
         )}
-        {["chat_canvas_4_1", "chat_canvas_4_2", "chat_canvas_4_3", "chat_canvas_4_4", "chat_canvas_4_5"].includes(state) && (
+        {["chat_canvas_4_1", "chat_canvas_4_3", "chat_canvas_4_5"].includes(state) && (
           <ChatCanvasState
             archive={archive}
             onConfirm={handleConfirm}
-            variant={state.replace("chat_canvas_", "").replace("_", ".") as "4.1" | "4.2" | "4.3" | "4.4" | "4.5"}
+            variant={state.replace("chat_canvas_", "").replace("_", ".") as "4.1" | "4.3" | "4.5"}
           />
         )}
         {state === "saved_preview" && (
