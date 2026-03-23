@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WorkfxHUB - 品牌大脑</title>
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            black: '#0a0a0a',
+            gray: {
+              50: '#fafafa', 100: '#f5f5f5', 200: '#e5e5e5', 300: '#d4d4d4',
+              400: '#a3a3a3', 500: '#737373', 600: '#525252', 700: '#404040',
+              800: '#262626', 900: '#171717', 950: '#0a0a0a'
+            },
+            success: '#16a34a', error: '#dc2626'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; -webkit-font-smoothing: antialiased; }
+    input, textarea, button { font: inherit; }
+  </style>
+</head>
+<body class="min-h-screen bg-white text-black">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback, useRef, useEffect } = React;
+
+    // ============ Types & Data ============
+    const SAMPLE_ARCHIVE = {
+      id: "1", name: "自然之美", updatedAt: "2026-03-11",
+      sections: [
+        { id: "identity", title: "1. 品牌基础身份与故事", content: ["品牌定位：纯植物提取护肤", "Slogan：科技还原自然之美", "核心卖点：24小时持久保湿、0致敏添加"] },
+        { id: "audience", title: "2. 目标人群与痛点", content: ["核心人群：25-35岁一二线城市新锐白领", "核心痛点：长期面对电脑导致肌肤暗沉、工作压力大追求松弛感"] },
+        { id: "tone", title: "3. 文本语感与调性", content: ["沟通语气：专业严谨、温柔治愈、不爹味说教"] },
+        { id: "visual", title: "4. 视觉与审美资产", content: ["品牌主色调：#00FF00 (自然绿)、#FFFFFF (极简白)", "视觉风格：极简留白、日系清新、高光泽感"] },
+        { id: "guardrails", title: "5. 护栏与排他禁忌", content: ["禁用词汇：平替、廉价、化工", "竞品避让：品牌X、品牌Y"] },
+        { id: "calendar", title: "6. 营销日历规划", content: ["核心节点：3.8女神节、9月秋季抗敏周、双11大促"] }
+      ]
+    };
+
+    const TAGS = [
+      { label: "基础信息", template: "品牌名称、所属行业、成立时间、主营产品/服务..." },
+      { label: "目标人群", template: "目标用户画像、年龄段、消费能力、核心痛点..." },
+      { label: "品牌调性", template: "品牌人设、沟通语气、视觉风格..." },
+      { label: "品牌红线", template: "禁用词汇、竞品避让、合规红线..." }
+    ];
+
+    const PROCESSING_MESSAGES = ["正在阅读您的品牌手册...", "正在提取您的核心卖点与目标人群...", "正在分析您的视觉偏好..."];
+
+    const VARIANT_4_1 = {
+      messages: [{ id: "1", role: "assistant", content: "收到！我已经为您搭建好「精酿啤酒」的基础骨架啦 🍻！\n\n为了让这份品牌蓝图能够真正指导未来的营销，我们还需要补充以下几个核心维度的细节。\n\n您想先从哪个模块开始详细聊聊？\n\n(请直接点击下方标签，告诉我您的选择)" }],
+      quickTags: ["👥 目标人群", "🎨 品牌调性", "🚫 品牌红线"],
+      placeholder: "选择您想先聊的话题...",
+      rightHeader: "📄 专属品牌蓝图 v0.1", rightSub: "🔴 信息丰度：极低 —— 缺乏核心要素", rightBtn: "⏳ 无法封版", rightBtnDisabled: true,
+      rightContent: [
+        { title: "1. 基础信息", items: ["产品定位：精酿啤酒"] },
+        { title: "2. 目标人群", items: [], placeholder: "✍️ 待补充\n这里将记录您的核心受众是谁，以及他们的核心痛点。\n💡 例如：25-35岁、追求下班微醺的白领" },
+        { title: "3. 品牌调性", items: [], placeholder: "✍️ 待补充\n这里将定义品牌的性格与视觉偏好。\n💡 例如：极简克制、或者美式复古风" },
+        { title: "4. 品牌红线", items: [], placeholder: "✍️ 待补充\n这里将记录品牌绝对不能触碰的雷区。\n💡 例如：绝不使用「平替」、「全网最低」" },
+        { title: "5. 营销策略与关键节点", locked: true, note: "补充信息后解锁" }
+      ],
+      tagReplies: {
+        "👥 目标人群": "目标人群这个维度，您可以补充这些信息：\n\n• 核心受众是谁？（年龄、职业、消费能力）\n• 他们的核心痛点是什么？\n• 典型使用场景？（例如：下班微醺、聚会狂欢）\n\n您可以直接输入，或粘贴已有的用户调研内容～",
+        "🎨 品牌调性": "品牌调性这个维度，您可以补充这些信息：\n\n• 品牌人设与性格？（例如：专业严谨、轻松有趣）\n• 视觉风格偏好？（极简、复古、赛博朋克等）\n• 沟通语气？（温柔治愈、直接犀利等）\n\n您可以直接输入，或粘贴参考案例～",
+        "🚫 品牌红线": "品牌红线这个维度，您可以补充这些信息：\n\n• 绝对不能使用的词汇？（例如：平替、全网最低）\n• 竞品或品类避让？\n• 合规与敏感词限制？\n\n您可以直接输入，我会帮您整理成规范～"
+      }
+    };
+
+    const VARIANT_4_3 = {
+      messages: [{ id: "1", role: "assistant", content: "太棒了！「一二线白领」+「赛博朋克果啤」的定位非常有画面感！\n\n✨ 叮！信息丰度已达标！\n\n我已为您自动解锁，并推演了专属的【营销策略与关键节点】，快看看右边合不合适！" }],
+      quickTags: [], placeholder: "查阅蓝图，或提出修改意见...",
+      rightHeader: "📄 专属品牌蓝图 v1.0", rightSub: "🟢 信息丰度：极佳", rightBtn: "✅ 确认并存储", rightBtnDisabled: false,
+      rightContent: [
+        { title: "2. 目标人群", items: ["一二线都市白领，追求下班后的微醺"] },
+        { title: "3. 品牌调性", items: ["赛博朋克风，前卫大胆"] },
+        { title: "4. 品牌红线", items: ["不使用「拼酒」、「买醉」等低级词汇"] },
+        { title: "🌟 5. 扩展品牌资产", items: ["📦 [ 核心卖点 ] : 独家鲜榨果汁融合发酵技术"] },
+        { title: "🔓 6. 营销策略与关键节点 ✨", items: ["🎯 策略：打造「赛博修仙」的周末微醺场景", "📍 Q1 春季：推出「桃花酿」赛博限定版...", "📍 Q2 盛夏：举办地下电音精酿派对..."] }
+      ]
+    };
+
+    const VARIANT_4_5 = {
+      messages: [
+        { id: "1", role: "user", content: "我们这款酒的客单价大概在 800 元/瓶。" },
+        { id: "2", role: "assistant", content: "💡 稍等，我发现一个小冲突：\n\n您之前提到受众是「无收入的学生党」，但 800 元的客单价对他们来说可能过高了。\n\n我们需要把目标人群调整为「高净值商务人士」或「资深精酿收藏家」吗？" }
+      ],
+      quickTags: ["调整为资深收藏家", "客单价写错了，是80"],
+      placeholder: "回复以解决定位冲突...",
+      rightHeader: "📄 专属品牌蓝图 v0.8", rightSub: "🟡 信息丰度：基础 —— 存在逻辑冲突", rightBtn: "✅ 确认并存储", rightBtnDisabled: false,
+      rightContent: [
+        { title: "1. 基础信息", items: ["客单价 800 元的高端精酿"] },
+        { title: "2. 目标人群", items: [], conflict: "⚠️ 冲突待决：无收入学生党 vs 高客单价", supplement: "✍️ 点击解决：调整受众，或调整定价？" },
+        { title: "3. 品牌调性", items: ["高端、尊贵"] },
+        { title: "4. 品牌红线", items: ["不使用「便宜」、「拼酒」等词汇"] },
+        { title: "6. 营销策略与关键节点", locked: true, note: "解决冲突后生成" }
+      ]
+    };
+
+    const VARIANTS = { "4.1": VARIANT_4_1, "4.3": VARIANT_4_3, "4.5": VARIANT_4_5 };
+    const TYPE_ICONS = { file: "📄", image: "🖼️", text: "📝", link: "🔗" };
+
+    // ============ UI Components ============
+    function Button({ variant = "primary", size = "md", className = "", children, ...props }) {
+      const base = "inline-flex items-center justify-center font-medium transition-all duration-150 rounded-md disabled:opacity-50 disabled:cursor-not-allowed";
+      const variants = { primary: "bg-black text-white hover:shadow-md", secondary: "bg-white text-black border-[1.5px] border-black hover:bg-black hover:text-white", ghost: "text-gray-500 hover:bg-gray-100 hover:text-black" };
+      const sizes = { sm: "px-4 py-2 text-xs", md: "px-6 py-3 text-sm", lg: "px-8 py-4 text-base" };
+      return <button className={`${base} ${variants[variant] || variants.primary} ${sizes[size]} ${className}`} {...props}>{children}</button>;
+    }
+
+    function MultiModalInputBar({ placeholder = "请输入...", submitLabel = "发送", onSubmit, onFileUpload, primaryLabel, onPrimaryClick, value: controlledValue, onChange: controlledOnChange, disabled = false, compact = false }) {
+      const [internalValue, setInternalValue] = useState("");
+      const fileInputRef = useRef(null);
+      const isControlled = controlledValue !== undefined && controlledOnChange !== undefined;
+      const inputValue = isControlled ? controlledValue : internalValue;
+      const setInputValue = isControlled ? controlledOnChange : setInternalValue;
+
+      const handleSubmit = () => {
+        const trimmed = inputValue.trim();
+        if (trimmed && !disabled) { onSubmit(trimmed); setInputValue(""); }
+      };
+      const handleKeyDown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } };
+      const handleFileChange = (e) => { const f = e.target.files?.[0]; if (f && onFileUpload) onFileUpload(f); e.target.value = ""; };
+
+      return (
+        <div className={`flex items-center gap-2 rounded-lg border-2 border-gray-300 bg-white p-2 transition-colors focus-within:border-black ${disabled ? "opacity-60 pointer-events-none" : ""}`}>
+          <label className="flex shrink-0 cursor-pointer rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-black">
+            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileChange} />
+            <span>📎</span>
+          </label>
+          <label className="flex shrink-0 cursor-pointer rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-black">
+            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            <span>🖼️</span>
+          </label>
+          <button type="button" className="shrink-0 rounded p-1.5 text-gray-400 hover:text-black" title="语音输入">🎤</button>
+          <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} placeholder={placeholder} disabled={disabled}
+            className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-sm text-black outline-none placeholder:text-gray-400" />
+          {primaryLabel && onPrimaryClick ? (
+            <Button size={compact ? "sm" : "md"} onClick={() => onPrimaryClick(inputValue.trim() || undefined)}>{primaryLabel}</Button>
+          ) : (
+            <Button size={compact ? "sm" : "md"} onClick={handleSubmit} disabled={!inputValue.trim() || disabled}>{submitLabel}</Button>
+          )}
+        </div>
+      );
+    }
+
+    // ============ Brand Brain Components ============
+    function EmptyState({ onInputStart, onFileUpload, onLinkPaste }) {
+      const [inputValue, setInputValue] = useState("");
+      return (
+        <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
+          <div className="flex max-w-2xl flex-col items-center gap-10">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold tracking-tight text-black md:text-4xl">✨ 欢迎构建你的专属【品牌知识库】 ✨</h1>
+              <p className="mt-4 text-base text-gray-600 md:text-lg">"把关于品牌的一切都丢给我，我来帮你提炼品牌核心基因"</p>
+            </div>
+            <div className="flex w-full flex-col items-center gap-4">
+              <p className="text-center text-sm font-medium text-gray-600">💡 不知从何说起？点击下方标签，获取快捷输入模板：</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {TAGS.map((tag) => (
+                  <button key={tag.label} type="button" onClick={() => setInputValue(p => (p ? p + "\n\n" + tag.template : tag.template))}
+                    className="rounded-lg border-2 border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-black hover:bg-gray-50 hover:text-black">{tag.label}</button>
+                ))}
+              </div>
+            </div>
+            <div className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 px-6 py-8">
+              <p className="mb-4 text-center text-sm font-medium text-gray-600">🧩 专属品牌 DNA 档案预览</p>
+              <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
+                <div>• 核心定位: ...</div><div>• 核心受众: ...</div><div>• 品牌人设: ...</div><div>• 沟通避坑: ...</div>
+              </div>
+              <p className="mt-4 text-center text-xs text-gray-400">( 投喂你的碎片信息，我来生成专属结构化档案 )</p>
+            </div>
+          </div>
+          <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
+            <MultiModalInputBar placeholder="输入品牌介绍，或直接粘贴相关资料或截图..." submitLabel="发送" onSubmit={onInputStart} onFileUpload={onFileUpload} value={inputValue} onChange={setInputValue} />
+          </div>
+        </div>
+      );
+    }
+
+    function InputtingState({ items, onAddMore, onFileUpload, onStartParse }) {
+      return (
+        <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
+          <div className="flex max-w-2xl flex-col items-center gap-12">
+            <h1 className="text-3xl font-bold tracking-tight text-black md:text-4xl">✨ 欢迎构建你的专属【品牌知识库】 ✨</h1>
+            <div className="w-full space-y-3">
+              <p className="text-sm font-medium text-gray-600">已接收的内容：</p>
+              {items.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                  <span className="text-lg">{TYPE_ICONS[item.type]}</span>
+                  <span className="flex-1 text-sm text-gray-700">{item.type === "text" ? item.preview : item.name}{item.size && <span className="ml-2 text-gray-400">({item.size})</span>}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
+            <MultiModalInputBar placeholder="还可以继续添加..." onSubmit={onAddMore} onFileUpload={onFileUpload} primaryLabel="🚀 立即解析" onPrimaryClick={onStartParse} />
+          </div>
+        </div>
+      );
+    }
+
+    function ProcessingState() {
+      const [idx, setIdx] = useState(0);
+      useEffect(() => { const t = setInterval(() => setIdx(i => (i + 1) % PROCESSING_MESSAGES.length), 2500); return () => clearInterval(t); }, []);
+      return (
+        <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
+          <div className="flex max-w-md flex-col items-center gap-10">
+            <div className="text-center">
+              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 animate-pulse"><span className="text-2xl">⚙️</span></div>
+              <h2 className="text-xl font-semibold text-black">正在解析中...</h2>
+            </div>
+            <div className="space-y-3 text-center">
+              {PROCESSING_MESSAGES.map((msg, i) => (
+                <p key={msg} className={`text-sm ${i === idx ? "text-black" : "text-gray-400"}`}>"{msg}"</p>
+              ))}
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-6 py-4 text-center shadow-sm">
+              <p className="text-sm text-gray-600">💡 提示：解析完成后，我们将为您生成一份结构化的品牌档案。</p>
+              <p className="mt-2 text-sm text-gray-500">如果有遗漏或偏差，您可以直接在下一步与我对话修改。</p>
+            </div>
+          </div>
+          <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
+            <MultiModalInputBar placeholder="✨ 正在深度解析您的品牌资料中，请稍候..." submitLabel="⏳" onSubmit={() => {}} disabled />
+          </div>
+        </div>
+      );
+    }
+
+    function ChatCanvasState({ archive, onConfirm, variant = "default" }) {
+      const [inputValue, setInputValue] = useState("");
+      const [messages, setMessages] = useState([{ id: "1", role: "assistant", content: "太棒了！我已经阅读完毕并为您提取了右侧的档案。您看看有什么需要修改的吗？" }]);
+      const [selectedText, setSelectedText] = useState(null);
+      const canvasRef = useRef(null);
+      const isVariant = variant !== "default";
+      const data = isVariant ? VARIANTS[variant] : null;
+      const [variantMessages, setVariantMessages] = useState(data?.messages || []);
+
+      useEffect(() => { if (data?.messages) setVariantMessages([...data.messages]); }, [variant]);
+
+      const handleTagClick = (tag) => {
+        if (!data?.tagReplies?.[tag]) return;
+        const moduleMap = { "👥 目标人群": "目标人群", "🎨 品牌调性": "品牌调性", "🚫 品牌红线": "品牌红线" };
+        const userMsg = { id: "u-" + Date.now(), role: "user", content: `我想先聊一聊${moduleMap[tag] ?? tag}` };
+        const aiMsg = { id: "a-" + Date.now(), role: "assistant", content: data.tagReplies[tag] };
+        setVariantMessages(prev => [...prev, userMsg, aiMsg]);
+      };
+
+      const handleTextSelection = () => { const sel = window.getSelection(); const t = sel?.toString().trim(); setSelectedText(t || null); };
+      const addQuoteToInput = () => { if (selectedText) { setInputValue(p => (p ? p + "\n\n" : "") + '> "' + selectedText + '"\n'); setSelectedText(null); } };
+      const handleSend = (text) => { if (!text.trim()) return; setInputValue(""); };
+
+      const displayMsgs = isVariant && data ? (variantMessages.length ? variantMessages : data.messages) : messages;
+
+      if (isVariant && data) {
+        return (
+          <div className="flex h-[calc(100vh-3.5rem)]">
+            <div className="flex w-[45%] min-w-[320px] flex-col border-r border-gray-200 bg-white">
+              <div className="shrink-0 border-b border-gray-200 px-4 py-3"><h3 className="text-sm font-semibold text-black">💬 品牌构建助手</h3></div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {displayMsgs.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-4 py-3 text-sm ${msg.role === "user" ? "bg-black text-white rounded-br-none" : "bg-gray-100 text-black rounded-bl-none"}`}>{msg.content}</div>
+                  </div>
+                ))}
+                {data.quickTags?.length ? (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {data.quickTags.map((tag) => (
+                      <button key={tag} type="button" onClick={() => handleTagClick(tag)} className="rounded-lg border-2 border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-black hover:text-black">{tag}</button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <div className="shrink-0 border-t border-gray-200 p-4">
+                <MultiModalInputBar placeholder={data.placeholder} submitLabel="发送" onSubmit={handleSend} value={inputValue} onChange={setInputValue} compact />
+              </div>
+            </div>
+            <div ref={canvasRef} className="flex-1 overflow-y-auto bg-gray-50" onMouseUp={handleTextSelection}>
+              <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div><h3 className="text-sm font-semibold text-black">{data.rightHeader}</h3><p className="mt-0.5 text-xs text-gray-500">{data.rightSub}</p></div>
+                  <Button size="sm" onClick={onConfirm} disabled={data.rightBtnDisabled} className={data.rightBtnDisabled ? "opacity-60 cursor-not-allowed" : ""}>{data.rightBtn}</Button>
+                </div>
+              </div>
+              <div className="p-6 text-sm leading-relaxed">
+                {data.rightContent.map((section, i) => (
+                  <section key={i} className="mb-6">
+                    <h2 className="mb-3 text-base font-semibold text-black">{section.title}</h2>
+                    {section.locked ? <p className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-gray-500">🔒 {section.note}</p> : (
+                      <>
+                        {section.items?.map((item, j) => <div key={j} className="mb-2 select-text rounded-md px-2 py-1.5 hover:bg-gray-100">{item}</div>)}
+                        {section.conflict && <div className="rounded-lg border-2 border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">{section.conflict}</div>}
+                        {(section.placeholder || section.supplement) && <div className="mt-2 rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-3 text-gray-500 whitespace-pre-line">{section.supplement || section.placeholder}</div>}
+                      </>
+                    )}
+                  </section>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex h-[calc(100vh-3.5rem)]">
+          <div className="flex w-[45%] min-w-[320px] flex-col border-r border-gray-200 bg-white">
+            <div className="shrink-0 border-b border-gray-200 px-4 py-3"><h3 className="text-sm font-semibold text-black">💬 品牌构建助手</h3></div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[85%] rounded-lg px-4 py-3 shadow-sm ${msg.role === "user" ? "bg-black text-white rounded-br-none" : "bg-gray-100 text-black rounded-bl-none"}`}><p className="text-sm leading-relaxed">{msg.content}</p></div>
+                </div>
+              ))}
+            </div>
+            <div className="shrink-0 border-t border-gray-200 bg-white p-4">
+              <div className="space-y-2">
+                <MultiModalInputBar placeholder="选中右侧文本进行修改..." submitLabel="发送" onSubmit={(text) => {
+                  if (text.trim()) {
+                    setMessages(p => [...p, { id: Date.now().toString(), role: "user", content: text }]);
+                    setInputValue("");
+                    setTimeout(() => setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: "assistant", content: "收到！已为您在右侧面板实时更新了目标人群信息。" }]), 800);
+                  }
+                }} value={inputValue} onChange={setInputValue} compact />
+                {selectedText && (
+                  <div className="mt-2 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+                    <span className="flex-1 truncate text-xs text-gray-600">已选: "{selectedText.slice(0, 40)}{selectedText.length > 40 ? "…" : ""}"</span>
+                    <Button size="sm" variant="secondary" onClick={addQuoteToInput}>添加到对话 ↙️</Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div ref={canvasRef} className="flex-1 overflow-y-auto bg-gray-50" onMouseUp={handleTextSelection}>
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
+              <h3 className="text-sm font-semibold">📄 品牌结构化档案 v1.0</h3>
+              <Button size="sm" onClick={onConfirm}>✅ 确认并封版记忆</Button>
+            </div>
+            <div className="p-6 text-sm leading-relaxed">
+              {archive.sections.map((section) =>
+                section.id === "calendar" ? (
+                  <section key={section.id} className="mb-8">
+                    <h2 className="mb-4 text-lg font-semibold text-black">{section.title}</h2>
+                    <div className="relative">
+                      <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200" />
+                      {section.content.flatMap((item) => {
+                        const match = item.match(/核心节点[：:]?(.+)/);
+                        const raw = match ? match[1] : item;
+                        const nodes = raw.split(/[、,，]/).map(s => s.trim()).filter(Boolean);
+                        return nodes.map((node, i) => (
+                          <div key={i} className="relative flex gap-4 pb-6 last:pb-0">
+                            <div className="relative z-10 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-black bg-white" />
+                            <div className="min-w-0 flex-1 select-text rounded-md px-3 py-2 hover:bg-gray-100">{node}</div>
+                          </div>
+                        ));
+                      })}
+                    </div>
+                  </section>
+                ) : (
+                  <section key={section.id} className="mb-8">
+                    <h2 className="mb-4 text-lg font-semibold text-black">{section.title}</h2>
+                    <ul className="space-y-2">
+                      {section.content.map((item, i) => (
+                        <li key={i} className="select-text cursor-text rounded-md px-2 py-1.5 hover:bg-gray-100">{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function SavedPreviewState({ archive, onEdit }) {
+      return (
+        <div className="min-h-[calc(100vh-3.5rem)] px-6 py-12">
+          <div className="mx-auto max-w-3xl">
+            <div className="mb-8 flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-6 py-4">
+              <div>
+                <p className="text-sm text-gray-600">🟢 当前生效的品牌知识库：<strong className="text-black">{archive.name}</strong></p>
+                <p className="mt-1 text-xs text-gray-500">最近更新: {archive.updatedAt}</p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={onEdit}>✏️ 编辑品牌档案</Button>
+            </div>
+            <div className="space-y-10 border-t border-gray-200 pt-8">
+              {archive.sections.map((section) => (
+                <section key={section.id} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-semibold text-black">{section.title}</h2>
+                  <ul className="space-y-2.5">
+                    {section.content.map((item, i) => (
+                      <li key={i} className="flex gap-2 text-sm text-gray-700 leading-relaxed">
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gray-400" /><span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+            <p className="mt-12 text-center text-sm text-gray-400">⬇️ 向下滚动查看完整文档</p>
+          </div>
+        </div>
+      );
+    }
+
+    // ============ Layout ============
+    function LeftSidebar() {
+      return (
+        <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-gray-100">
+          <div className="flex items-center gap-3 border-b border-gray-200 p-4 hover:bg-gray-200/50 transition-colors">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black text-white font-bold text-sm">W</div>
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-bold text-black truncate">WorkfxHUB</p>
+              <p className="text-xs text-gray-500 truncate">workfxhub.com</p>
+            </div>
+          </div>
+          <div className="flex gap-2 p-4">
+            {["TOTAL", "FIXED", "PENDING"].map((label) => (
+              <div key={label} className="flex flex-1 flex-col items-center rounded-lg border border-gray-200 bg-white px-2 py-3">
+                <span className="text-lg font-bold text-success">0</span>
+                <span className="text-xs text-gray-500">{label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 p-4">
+            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-3"><span className="text-sm font-semibold text-black">WorkfxHUB</span></div>
+          </div>
+          <div className="border-t border-gray-200 p-4 space-y-4">
+            <div className="flex items-center gap-2"><span className="text-sm font-medium text-gray-600">Explore</span></div>
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <div className="flex items-center justify-between"><span className="text-sm font-medium text-black">Free</span><button type="button" className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-black hover:bg-gray-300">Upgrade</button></div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200"><div className="h-full w-4/5 rounded-full bg-success" /></div>
+              <p className="mt-1 text-xs text-gray-500">0 / 200</p>
+            </div>
+            <button type="button" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-200"><span>中文</span></button>
+          </div>
+        </aside>
+      );
+    }
+
+    function TopTabs() {
+      return (
+        <nav className="sticky top-0 z-50 h-14 shrink-0 border-b border-gray-200 bg-white shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
+          <div className="mx-auto flex h-full max-w-7xl px-6">
+            <div className="relative flex h-full items-center px-4 text-sm font-medium text-black">
+              品牌大脑
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+            </div>
+            <div className="flex h-full items-center px-4 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-black">渠道账号</div>
+            <div className="flex h-full items-center px-4 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-black">营销灵感库</div>
+          </div>
+        </nav>
+      );
+    }
+
+    // ============ App ============
+    function BrandBrainPage() {
+      const [state, setState] = useState("empty");
+      const [uploadedItems, setUploadedItems] = useState([]);
+      const [archive] = useState(SAMPLE_ARCHIVE);
+
+      const handleInputStart = useCallback((text) => {
+        setUploadedItems(p => [...p, { id: "text-" + Date.now(), type: "text", name: "用户输入", preview: text.slice(0, 50) + (text.length > 50 ? "…" : "") }]);
+        setState("inputting");
+      }, []);
+
+      const handleFileUpload = useCallback((file) => {
+        setUploadedItems(p => [...p, { id: "file-" + Date.now(), type: file.type.startsWith("image/") ? "image" : "file", name: file.name, size: (file.size / 1024 / 1024).toFixed(1) + "MB" }]);
+        setState("inputting");
+      }, []);
+
+      const handleAddMore = useCallback((text) => {
+        setUploadedItems(p => [...p, { id: "text-" + Date.now(), type: "text", name: "用户输入", preview: text.slice(0, 50) + (text.length > 50 ? "…" : "") }]);
+      }, []);
+
+      const handleStartParse = useCallback(() => { setState("processing"); setTimeout(() => setState("chat_canvas"), 5000); }, []);
+      const handleConfirm = useCallback(() => setState("saved_preview"), []);
+      const handleEdit = useCallback(() => setState("chat_canvas"), []);
+
+      const DEBUG_STATES = [
+        { key: "empty", label: "1. 空状态" }, { key: "inputting", label: "2. 投喂中" }, { key: "processing", label: "3. 解析中" },
+        { key: "chat_canvas", label: "4. 对话+档案" }, { key: "chat_canvas_4_1", label: "4.1 信息不足" }, { key: "chat_canvas_4_3", label: "4.3 信息丰满" },
+        { key: "chat_canvas_4_5", label: "4.5 异常边界" }, { key: "saved_preview", label: "5. 已保存" }
+      ];
+
+      return (
+        <div className="flex min-h-screen flex-col bg-white">
+          <main className="flex-1">
+            <div className="sticky top-14 z-40 flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2">
+              <span className="text-xs font-medium text-gray-500">Debug 切换:</span>
+              {DEBUG_STATES.map(({ key, label }) => (
+                <button key={key} type="button" onClick={() => setState(key)}
+                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${state === key ? "bg-black text-white" : "bg-white text-gray-600 hover:bg-gray-200"}`}>{label}</button>
+              ))}
+            </div>
+            {state === "empty" && <EmptyState onInputStart={handleInputStart} onFileUpload={handleFileUpload} />}
+            {state === "inputting" && <InputtingState items={uploadedItems} onAddMore={handleAddMore} onFileUpload={handleFileUpload} onStartParse={handleStartParse} />}
+            {state === "processing" && <ProcessingState />}
+            {state === "chat_canvas" && <ChatCanvasState archive={archive} onConfirm={handleConfirm} />}
+            {["chat_canvas_4_1", "chat_canvas_4_3", "chat_canvas_4_5"].includes(state) && (
+              <ChatCanvasState archive={archive} onConfirm={handleConfirm} variant={state.replace("chat_canvas_", "").replace("_", ".")} />
+            )}
+            {state === "saved_preview" && <SavedPreviewState archive={archive} onEdit={handleEdit} />}
+          </main>
+        </div>
+      );
+    }
+
+    function App() {
+      return (
+        <div className="flex min-h-screen w-full flex-row">
+          <LeftSidebar />
+          <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-auto">
+            <TopTabs />
+            <main className="flex min-h-[calc(100vh-3.5rem)] flex-1 flex-col overflow-auto bg-white">
+              <BrandBrainPage />
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById("root"));
+  </script>
+</body>
+</html>
