@@ -57,7 +57,7 @@
 <body class="min-h-screen bg-white text-black">
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useCallback, useRef, useEffect } = React;
+    const { useState, useCallback, useRef, useEffect, useContext, createContext, useMemo } = React;
 
     // 渠道矩阵涉及平台：LinkedIn, Shopify, WordPress, Reddit, X, Instagram, Facebook, Medium（提前定义以供 SAMPLE_ARCHIVE 引用）
     const CHANNELS_MATRIX_PROPOSAL = [
@@ -94,7 +94,43 @@
         visualVoice: { visual: "干净、专注内容", verbal: "有洞察、有故事、有引用" },
         materialReq: "主打长文，1500+ 字，配合小标题与引用块。" }
     ];
+    const CHANNELS_MATRIX_PROPOSAL_EN = [
+      { id: "linkedin", name: "LinkedIn", role: "Credibility voice", icon: "💼",
+        identity: "A seasoned career guide for curious professionals.",
+        visualVoice: { visual: "Minimal, cool palette", verbal: "Rational, restrained, few emojis" },
+        materialReq: "1:1 posts, 300+ words with depth." },
+      { id: "shopify", name: "Shopify", role: "Conversion voice", icon: "🛒",
+        identity: "A hands-on merchant coach for indie sellers who need sales.",
+        visualVoice: { visual: "Product-first, premium", verbal: "Direct, ROI-focused" },
+        materialReq: "Product shots + copy; urgency and clear CTAs." },
+      { id: "wordpress", name: "WordPress", role: "Long-form voice", icon: "📝",
+        identity: "SEO & content expert for owners who care about long-term traffic.",
+        visualVoice: { visual: "Structured, scannable", verbal: "Professional, evidence-based" },
+        materialReq: "800+ word tutorials with H2/H3." },
+      { id: "reddit", name: "Reddit", role: "Authentic community voice", icon: "🔴",
+        identity: "A real user discussing with the community — not a hard sell.",
+        visualVoice: { visual: "Native, low polish", verbal: "Plain, grounded, opinionated" },
+        materialReq: "Posts & replies; emphasize real experience." },
+      { id: "x", name: "X (Twitter)", role: "Trend voice", icon: "𝕏",
+        identity: "A sharp observer jumping on timely topics.",
+        visualVoice: { visual: "Minimal, dense", verbal: "Punchy, meme-friendly, shareable" },
+        materialReq: "Under 280 chars; hook first; hashtags." },
+      { id: "instagram", name: "Instagram", role: "Visual voice", icon: "📷",
+        identity: "A tastemaker for people who want a better everyday.",
+        visualVoice: { visual: "Bright, airy", verbal: "Light, emotional, emoji-friendly" },
+        materialReq: "4:5 preferred; strong first frame." },
+      { id: "facebook", name: "Facebook", role: "Broad reach voice", icon: "📘",
+        identity: "A trustworthy friend across ages and regions.",
+        visualVoice: { visual: "Clear, readable", verbal: "Warm, simple, localized" },
+        materialReq: "Image + copy; short video works in feed." },
+      { id: "medium", name: "Medium", role: "Deep read voice", icon: "📄",
+        identity: "A thoughtful writer for readers who want depth.",
+        visualVoice: { visual: "Clean, text-first", verbal: "Insightful, storied, cited" },
+        materialReq: "1500+ words, subheads, pull quotes." }
+    ];
     const CHANNELS_MATRIX_PROPOSAL_BY_ID = Object.fromEntries(CHANNELS_MATRIX_PROPOSAL.map(p => [p.id, p]));
+    const CHANNELS_MATRIX_PROPOSAL_EN_BY_ID = Object.fromEntries(CHANNELS_MATRIX_PROPOSAL_EN.map(p => [p.id, p]));
+    function getChannelMatrixProposal(locale) { return locale === "en" ? CHANNELS_MATRIX_PROPOSAL_EN : CHANNELS_MATRIX_PROPOSAL; }
 
     // ============ Types & Data ============
     const SAMPLE_ARCHIVE = {
@@ -110,14 +146,31 @@
       ]
     };
 
+    const SAMPLE_ARCHIVE_EN = {
+      id: "1", name: "Nature’s Glow", updatedAt: "2026-03-11",
+      sections: [
+        { id: "identity", title: "Positioning", content: ["Positioning: plant-based skincare", "Slogan: science restores nature’s beauty", "Key benefits: 24h hydration, zero irritants"], sources: [{ type: "file", name: "Brand_Manual.pdf" }, { type: "text", name: "Pasted intro" }] },
+        { id: "audience", title: "Audience", content: ["Core segment: 25–35 urban professionals", "Pain points: screen fatigue, dull skin, need to unwind"], sources: [{ type: "file", name: "Brand_Manual.pdf" }, { type: "image", name: "ref_1.jpg" }] },
+        { id: "tone", title: "Brand style", content: ["Tone: professional, gentle healing, non-preachy"], sources: [{ type: "link", name: "About page" }] },
+        { id: "visual", title: "Visual style", content: ["Palette: #00FF00 (nature green), #FFFFFF (minimal white)", "Look: airy, Japanese-fresh, glossy"], sources: [{ type: "image", name: "ref_1.jpg" }] },
+        { id: "guardrails", title: "Guardrails", content: ["Banned words: dupe, cheap, chemical", "Competitors to avoid: Brand X, Brand Y"], sources: [{ type: "file", name: "Brand_Manual.pdf" }] },
+        { id: "calendar", title: "Marketing moments", content: ["Key moments: Mar 8, Sep anti-allergy week, Double 11"], sources: [] },
+        { id: "channel_matrix", title: "Marketing account matrix", content: [], matrixData: CHANNELS_MATRIX_PROPOSAL_EN.map(p => ({ ...p })), sources: [] }
+      ]
+    };
+
     const TAGS = [
       { label: "基础信息", template: "品牌名称、所属行业、成立时间、主营产品/服务..." },
       { label: "目标人群", template: "目标用户画像、年龄段、消费能力、核心痛点..." },
       { label: "品牌调性", template: "品牌人设、沟通语气、视觉风格..." },
       { label: "品牌红线", template: "禁用词汇、竞品避让、合规红线..." }
     ];
-
-    const PROCESSING_MESSAGES = ["正在阅读您的品牌手册...", "正在提取您的核心卖点与目标人群...", "正在分析您的视觉偏好..."];
+    const TAGS_EN = [
+      { label: "Basics", template: "Brand name, industry, founded, main products / services…" },
+      { label: "Audience", template: "Personas, age, spending power, pain points…" },
+      { label: "Tone", template: "Personality, voice, visual style…" },
+      { label: "Guardrails", template: "Banned words, competitor avoidance, compliance…" }
+    ];
 
     const VARIANT_4_1 = {
       messages: [{ id: "1", role: "assistant", content: "收到！我已经为您搭建好「精酿啤酒」的基础骨架啦 🍻！\n\n为了让这份品牌蓝图能够真正指导未来的营销，我们还需要补充以下几个核心维度的细节。\n\n您想先从哪个模块开始详细聊聊？\n\n(请直接点击下方标签，告诉我您的选择)" }],
@@ -171,6 +224,46 @@
     const VARIANTS = { "4.1": VARIANT_4_1, "4.3": VARIANT_4_3, "4.5": VARIANT_4_5 };
     const TYPE_ICONS = { file: "📄", image: "🖼️", text: "📝", link: "🔗" };
 
+    const I18N = {
+      zh: {
+        meta: { title: "WorkfxHUB - 品牌大脑", docLang: "zh-CN" },
+        common: { send: "发送", cancel: "取消", save: "保存", delete: "删除", close: "关闭", confirm: "确认", upgrade: "Upgrade", explore: "Explore", free: "Free", voice: "语音输入", selected: "已选", removeQuote: "移除", addToChat: "添加到对话 ↙️", userInput: "用户输入", pasteText: "粘贴文字", inputPlaceholder: "请输入...", submitDefault: "发送" },
+        sidebar: { navKnowledge: "品牌资产", navBrand: "品牌基因", navChannels: "营销矩阵", saveTooltip: "保存到这里", langZh: "中文", langEn: "英文" },
+        blueprint: { hero1: "构建你的", hero2: "「品牌策略蓝图」", close: "关闭", s1: "品牌定位", s2: "核心受众", s3: "品牌风格", s4: "营销节点与矩阵", i11: "品牌定位", i12: "Slogan", i13: "核心卖点", i21: "核心人群", i22: "核心痛点", i23: "情感诉求", i31: "沟通语气", i32: "视觉调性", i41: "核心节点", i42: "社媒矩阵" },
+        knowledge: { initTitle: "✨ 开始沉淀你的「品牌资产」", dnaPreviewTitle: "品牌档案预览", dna1: "· 品牌定位：...", dna2: "· 核心受众：...", dna3: "· 品牌风格：...", dna4: "· 营销节点：...", source: "来源", addSource: "+ 添加来源", emptySource1: "已保存的来源将", emptySource2: "显示在此处", inputPh: "输入品牌介绍，或直接上传相关文档/截图...", parsingTitle: "🔄 正在深度解析投喂的内容...", parsingHint: "可继续添加素材，暂不支持对话", chatIntro1: "档案已生成，请预览。", chatIntro2: "档案已生成！包含以下内容：", chatLi1: "品牌定位", chatLi1b: " — 纯植物护肤、科技与自然并重的价值主张。", chatLi2: "核心受众", chatLi2b: " — 一二线城市新锐白领，关注职场压力与肌肤状态。", chatLi3: "品牌风格", chatLi3b: " — 专业严谨、温柔治愈，避免说教感。", chatLi4: "物料风格", chatLi4b: " — 自然绿与极简白，日系清新、高光泽视觉。", chatLi5: "品牌红线与准则", chatLi5b: " — 禁用平替/廉价/化工表述，避让指定竞品。", chatLi6: "营销节点", chatLi6b: " — 女神节、秋季抗敏周、双11 等关键战役。", chatLi7: "营销账号矩阵", chatLi7b: " — 多平台「性格分身」与内容分工。", assetCardTitle: "品牌资产全案", previewDetail: "👁️ 预览详情", saved: "已保存", saveBtn: "✅ 保存", matrixCardTitle: "渠道矩阵方案", previewing: "预览中...", sync: "⚡ 同步", saveChannels: "⚡ 存入渠道", assistantReply1: "收到！我会根据您的反馈进一步优化档案内容。", assistantReply2: "好的！品牌档案已存入。那现在我们再来看一下整个账号矩阵相关的部分～", previewPanel: "预览详情 (Preview Panel)", matrixHeader: "🛡️ 营销账号矩阵", matrixIntro: "基于您的品牌资料，建议通过以下「性格分身」进行全网发声：", addChannel: "+ 增加新渠道建议：如其他平台...", matrixHint: "✨ 告诉 AI：我觉得这个矩阵太重了，减少几个渠道", identityLabel: "账号身份：", vvLabel: "画风口吻：", matLabel: "物料要求：", previewBrandTitle: "🛡️ 品牌资产全案详情", confirmBrand: "✅ 确认无误，同步到品牌模块", confirmMatrix: "✅ 确认方案：同步并创建这 {{n}} 个账号配置到「渠道账号」", ph1: "继续提出修改意见", ph2: "继续指挥修改", ph3: "对建议不满意？在这里告诉我你的想法...", quote: "引用:", brandPos: "品牌定位", coreAudience: "核心受众", brandStyle: "品牌风格", pendingStyle: "(❓ 待补全)", conflictNote: "尚未从来源中捕捉到您的发声习惯。", suggestTitle: "💡 补全建议：", suggest1: "· 在左侧上传几段您的 ", suggest1a: "往期推文", suggest1b: " 或 ", suggest1c: "宣传文案", suggest2: "· 或直接描述：\"我希望像[苹果]一样简洁\"", materialStyle: "物料风格", redlines: "品牌红线与准则", marketingNodes: "营销节点", nodeLine: "· 核心节点：3.8女神节、9月秋季抗敏周、双11大促", matrixSection: "营销账号矩阵", refSources: "📎 引用来源", viewRefs: "查看引用来源", addSourceModalTitle: "✨ 添加更多资料到「品牌知识库」", addForSection: "添加资料", addForSectionPrefix: "为「", addForSectionSuffix: "」补充资料", dropFiles: "拖放文件", fileTypes: "PDF、图片、Word、TXT 等", uploadFile: "📤 上传文件", webLink: "🔗 网页/链接", pasteTab: "📋 复制的文字", urlPh: "输入网址...", addBtn: "添加", pastePh: "粘贴文字内容...", storage: "储存空间", closeX: "✕ 关闭", debugBar: "品牌知识库 Debug:", debug1: "1. 初始态", debug2: "2. 解析中", debug3: "3. 对话态", debug4: "4. 冲突处理", defaultSite: "workfxhub.com · 品牌官网", parsingMsg1: "正在从提取 [品牌定位]...", parsingMsg2: "正在识别 [目标人群]...", parsingMsg3: "正在构建 [品牌知识库]......" },
+        channels: { pageTitle: "您的营销矩阵 ", pageTitleSub: "(共 {{p}} 个平台, {{a}} 个账号)", addChannel: "+ 新增营销渠道", deletePl: "🗑️ 删除渠道", accountN: "账号 {{n}}", editNamePh: "编辑名字", edit: "⚙️ 编辑", bind: "🔗 绑定", swap: "🔄 更换", unbind: "🔓 解绑", delAcc: "🗑️ 删除", saveVerify: "✨ 保存并验证", identity: "账号身份", polish: "✨ 润色", vv: "画风口吻", vvLine: "画面要[{{v}}]，说话要[{{b}}]", matReq: "物料要求", phIdentity: "扮演一位...", phVV: "画面要[...]，说话要[...]", phMat: "主打...", collapseSample: "🔼 收起风格样本", expandSample: "✨ 查看该账号的风格样本 (Sample)", sampleTitle: "样板标题：为什么我们坚持使用 100% 可回收包装？", sampleSub: "(基于 1:1 图文)", sampleBody: "在 Workflex 的逻辑里，环保从来不是营销的口号。我们认为，真正的长期主义应该体现在每一个看不见的细节里。哪怕这会增加生产成本，但...", bindChoice: "选择绑定方式", bindExisting: "绑定已有账号", bindNew: "关联新账号", pickAccount: "选择要绑定的账号", back: "← 返回", saveVerifyTitle: "🔍 保存前最后确认：风格样板验证", saveVerifySub: "AI 已根据您的新规则（{{r}}）为您生成了以下 Demo：", demoTitle: "标题：为什么 90% 的人读不懂品牌 DNA？", demoSub: "(1:1 极简风格)", demoBody: "正文：在营销的语境里，认知差往往决定了...这不是一个关于技巧的问题，而是一个关于...", saveVerifyQ: "这个风格符合您的预期吗？", backEdit: "⬅️ 返回继续修改", confirmAsset: "✅ 确认为最终资产", unbindTitle: "确定解绑？", unbindDesc: "解绑后账号「{{h}}」将不再关联本 project，您可随时重新绑定。", unbindBtn: "解绑", delPlTitle: "删除整个渠道？", delAccTitle: "删除该账号？", delPlDesc: "将移除「{{icon}} {{name}}」及其下全部账号，此操作不可撤销。", delAccDesc: "将永久移除账号「{{h}}」，此操作不可撤销。", bindModalTitle: "WorkfxHUB 使用 Pipedream 连接您的账号", pd1: "Pipedream 是 Workday 旗下产品", pd1b: "全球数百万人信赖 Pipedream 保护数据安全。", pd2: "即时连接", pd2b: "Pipedream 可安全、快速地连接您的 {{name}} 账号。", pdTerms: "继续即表示您同意 Pipedream 的 ", terms: "《服务条款》", privacy: "《隐私政策》", continue: "继续", addVoiceTitle: "✨ 新增发声账号", step1: "第一步：选择平台", step2: "第二步：确认账号性格 ", step2b: "(已基于 ", step2c: "品牌基因", step2d: " 自动生成建议)", pickPlFirst: "请先选择平台", accIdentity: "● 账号身份", rephrase: "✨ 换个说法", vvFull: "● 画风口吻", matFull: "● 物料要求", stylePreview: "风格样本预览", stylePreviewBody: "基于当前设定，生成的一条示例文案将在此展示（演示）。", previewStyleBtn: "预览风格样本", confirmAdd: "确认添加", delModalConfirm: "删除", notConfigured: "@未配置", shuffleHint: " ✨ 已微调语气", bindTargetFallback: "目标", newAccountDefault: "新账号" },
+        brand: { emptyWelcome: "✨ 欢迎构建你的专属【品牌知识库】 ✨", emptySub: "\"把关于品牌的一切都丢给我，我来帮你提炼品牌核心基因\"", emptyHint: "💡 不知从何说起？点击下方标签，获取快捷输入模板：", dnaCard: "🧩 专属品牌 DNA 档案预览", dnaHint: "( 投喂你的碎片信息，我来生成专属结构化档案 )", inputPh: "输入品牌介绍，或直接粘贴相关资料或截图...", received: "已接收的内容：", addMorePh: "还可以继续添加...", parseNow: "🚀 立即解析", processing: "正在解析中...", procTip: "💡 提示：解析完成后，我们将为您生成一份结构化的品牌档案。", procTip2: "如果有遗漏或偏差，您可以直接在下一步与我对话修改。", procInputPh: "✨ 正在深度解析您的品牌资料中，请稍候...", procStep1: "正在阅读您的品牌手册...", procStep2: "正在提取您的核心卖点与目标人群...", procStep3: "正在分析您的视觉偏好...", chatAssist: "💬 品牌构建助手", chatPlaceholder: "选中右侧文本进行修改...", chatConfirm: "✅ 确认并封版记忆", archiveTitle: "📄 品牌结构化档案 v1.0", assistantFirst: "太棒了！我已经阅读完毕并为您提取了右侧的档案。您看看有什么需要修改的吗？", assistantEdit: "收到！已为您在右侧面板实时更新了目标人群信息。", editTitle: "🧩 专属品牌 DNA 档案", fieldCore: "核心定位", fieldAudience: "核心受众", fieldPersona: "品牌人设", fieldGuard: "沟通避坑", saveEdit: "保存修改", aiPolish: "AI 轻量润色", polishing: "润色中…", phEnter: "请输入", deleteRef: "删除引用：「{{name}}」", deleteScope: "请选择删除范围：", delSection: "仅在此模块不再引用", delSectionSub: "资料仍保留在知识库，其他模块可继续使用", delGlobal: "从知识库彻底删除", delGlobalSub: "所有引用该资料的模块都将受影响", delRegen: "确认删除 并重新生成", refTitle: "📎 引用来源", edit: "✏️ 编辑", matrixEditIntro: "基于您的品牌资料，建议通过以下「性格分身」进行全网发声：", accId: "账号身份", visual: "画面", verbal: "说话", matReq: "物料要求", generating: "生成中", genSub: "正在基于剩余资料重新提炼本模块内容...", regenDone: "✓ 已基于剩余资料重新生成", agent: "🤖 Agent", editing: "正在编辑：", agentHint: "与 Agent 对话，协助修改本模块内容。", agentPh: "输入指令或问题...", savedIntro: "基于您的品牌资料，建议通过以下「性格分身」进行全网发声：", liIdentity: "账号身份：", liVV: "画风口吻：", liMat: "物料要求：", previewEdit: "编辑", delSourceTitle: "删除引用" },
+        archive: { matrixTitle: "营销账号矩阵" }
+      },
+      en: {
+        meta: { title: "WorkfxHUB - Brand Brain", docLang: "en" },
+        common: { send: "Send", cancel: "Cancel", save: "Save", delete: "Delete", close: "Close", confirm: "Confirm", upgrade: "Upgrade", explore: "Explore", free: "Free", voice: "Voice input", selected: "Selected", removeQuote: "Remove", addToChat: "Add to chat ↙️", userInput: "User input", pasteText: "Pasted text", inputPlaceholder: "Type here…", submitDefault: "Send" },
+        sidebar: { navKnowledge: "Brand Assets", navBrand: "Brand DNA", navChannels: "Marketing Matrix", saveTooltip: "Saved here", langZh: "中文", langEn: "English" },
+        blueprint: { hero1: "Build your", hero2: "「Brand Strategy Blueprint」", close: "Close", s1: "Positioning", s2: "Core audience", s3: "Brand style", s4: "Marketing calendar & matrix", i11: "Positioning", i12: "Slogan", i13: "Key selling points", i21: "Core segment", i22: "Pain points", i23: "Emotional appeal", i31: "Tone of voice", i32: "Visual tone", i41: "Key moments", i42: "Social matrix" },
+        knowledge: { initTitle: "✨ Start building your brand assets", dnaPreviewTitle: "Brand profile preview", dna1: "· Positioning: ...", dna2: "· Audience: ...", dna3: "· Style: ...", dna4: "· Marketing moments: ...", source: "Sources", addSource: "+ Add source", emptySource1: "Saved sources", emptySource2: "will appear here", inputPh: "Introduce your brand or upload docs / screenshots...", parsingTitle: "🔄 Parsing your content...", parsingHint: "You can keep adding assets; chat is disabled for now", chatIntro1: "Profile generated — please preview.", chatIntro2: "Your profile includes:", chatLi1: "Positioning", chatLi1b: " — plant-based skincare; tech meets nature.", chatLi2: "Audience", chatLi2b: " — young professionals in tier-1/2 cities.", chatLi3: "Brand style", chatLi3b: " — professional, gentle, non-preachy.", chatLi4: "Visual style", chatLi4b: " — natural green & minimal white; airy, glossy.", chatLi5: "Guardrails", chatLi5b: " — no “dupe / cheap / chemical” claims; competitor avoidance.", chatLi6: "Marketing moments", chatLi6b: " — Women’s Day, fall anti-allergy week, Double 11.", chatLi7: "Account matrix", chatLi7b: " — multi-platform personas and roles.", assetCardTitle: "Full brand asset pack", previewDetail: "👁️ Preview", saved: "Saved", saveBtn: "✅ Save", matrixCardTitle: "Channel matrix plan", previewing: "Previewing...", sync: "⚡ Sync", saveChannels: "⚡ Save to channels", assistantReply1: "Got it — I’ll refine the profile based on your feedback.", assistantReply2: "Saved. Let’s review your channel matrix next.", previewPanel: "Preview (Panel)", matrixHeader: "🛡️ Marketing account matrix", matrixIntro: "Based on your brand, we suggest these “personas” across channels:", addChannel: "+ Suggest another channel…", matrixHint: "✨ Tell the AI this matrix feels too heavy — fewer channels", identityLabel: "Identity: ", vvLabel: "Look & voice: ", matLabel: "Asset requirements: ", previewBrandTitle: "🛡️ Brand asset details", confirmBrand: "✅ Confirm & sync to Brand", confirmMatrix: "✅ Confirm: sync and create {{n}} account configs in Channels", ph1: "Suggest more changes…", ph2: "Keep directing edits…", ph3: "Not happy? Tell me here…", quote: "Quote:", brandPos: "Positioning", coreAudience: "Audience", brandStyle: "Brand style", pendingStyle: "(❓ Incomplete)", conflictNote: "We couldn’t infer your voice from sources yet.", suggestTitle: "💡 Suggestions:", suggest1: "· Upload a few ", suggest1a: "past posts", suggest1b: " or ", suggest1c: "promo copies", suggest2: "· Or describe: “I want Apple-like simplicity”", materialStyle: "Visual style", redlines: "Guardrails", marketingNodes: "Marketing moments", nodeLine: "· Key moments: Women’s Day, fall week, Double 11", matrixSection: "Account matrix", refSources: "📎 References", viewRefs: "View references", addSourceModalTitle: "✨ Add more to the brand library", addForSection: "Add assets", addForSectionPrefix: "Add for “", addForSectionSuffix: "”", dropFiles: "Drop files", fileTypes: "PDF, images, Word, TXT…", uploadFile: "📤 Upload", webLink: "🔗 Link", pasteTab: "📋 Pasted text", urlPh: "URL…", addBtn: "Add", pastePh: "Paste text…", storage: "Storage", closeX: "✕ Close", debugBar: "Brand library debug:", debug1: "1. Initial", debug2: "2. Parsing", debug3: "3. Chat", debug4: "4. Conflict", defaultSite: "workfxhub.com · Brand site", parsingMsg1: "Extracting [positioning]…", parsingMsg2: "Identifying [audience]…", parsingMsg3: "Building [library]…" },
+        channels: { pageTitle: "Your marketing matrix ", pageTitleSub: "({{p}} platforms, {{a}} accounts)", addChannel: "+ Add channel", deletePl: "🗑️ Remove platform", accountN: "Account {{n}}", editNamePh: "Display name", edit: "⚙️ Edit", bind: "🔗 Bind", swap: "🔄 Switch", unbind: "🔓 Unbind", delAcc: "🗑️ Delete", saveVerify: "✨ Save & verify", identity: "Identity", polish: "✨ Polish", vv: "Look & voice", vvLine: "Look: [{{v}}], voice: [{{b}}]", matReq: "Asset needs", phIdentity: "Act as…", phVV: "Look: [...], voice: [...]", phMat: "e.g. short video…", collapseSample: "🔼 Collapse sample", expandSample: "✨ View style sample", sampleTitle: "Sample title: Why 100% recyclable packaging?", sampleSub: "(1:1 visual)", sampleBody: "At Workflex, sustainability isn’t a slogan. Long-term thinking shows in invisible details—even when it raises cost…", bindChoice: "How to bind", bindExisting: "Bind existing account", bindNew: "Connect new account", pickAccount: "Choose account", back: "← Back", saveVerifyTitle: "🔍 Final check: style sample", saveVerifySub: "AI generated a demo from your new rules ({{r}}):", demoTitle: "Title: Why can’t 90% read brand DNA?", demoSub: "(1:1 minimal style)", demoBody: "Body: In marketing, perception gaps often decide…", saveVerifyQ: "Does this match your expectation?", backEdit: "⬅️ Back to edit", confirmAsset: "✅ Confirm as final asset", unbindTitle: "Unbind?", unbindDesc: "“{{h}}” will be unlinked from this project. You can bind again anytime.", unbindBtn: "Unbind", delPlTitle: "Delete entire platform?", delAccTitle: "Delete this account?", delPlDesc: "Removes {{icon}} {{name}} and all accounts under it. Cannot undo.", delAccDesc: "Permanently removes “{{h}}”. Cannot undo.", bindModalTitle: "WorkfxHUB connects via Pipedream", pd1: "Pipedream is a Workday company", pd1b: "Millions trust Pipedream to protect their data.", pd2: "Instant connection", pd2b: "Pipedream connects your {{name}} account securely and quickly.", pdTerms: "Continuing means you agree to Pipedream’s ", terms: "Terms", privacy: "Privacy Policy", continue: "Continue", addVoiceTitle: "✨ Add voice account", step1: "Step 1: Platform", step2: "Step 2: Persona ", step2b: "(suggested from ", step2c: "Brand DNA", step2d: ")", pickPlFirst: "Pick a platform first", accIdentity: "● Identity", rephrase: "✨ Rephrase", vvFull: "● Look & voice", matFull: "● Asset needs", stylePreview: "Style preview", stylePreviewBody: "A sample line would appear here (demo).", previewStyleBtn: "Preview style sample", confirmAdd: "Confirm add", delModalConfirm: "Delete", notConfigured: "@Not configured", shuffleHint: " ✨ Tone nudged", bindTargetFallback: "target", newAccountDefault: "New account" },
+        brand: { emptyWelcome: "✨ Build your brand knowledge base ✨", emptySub: "“Throw everything about the brand at me — I’ll distill the DNA.”", emptyHint: "💡 Not sure where to start? Tap a tag for a template:", dnaCard: "🧩 DNA profile preview", dnaHint: "( Feed fragments — I’ll structure them )", inputPh: "Paste brand intro or references…", received: "Received:", addMorePh: "Add more…", parseNow: "🚀 Parse now", processing: "Parsing…", procTip: "💡 When done, we’ll generate a structured profile.", procTip2: "If anything’s off, fix it in the next step.", procInputPh: "✨ Parsing… please wait", procStep1: "Reading your brand manual…", procStep2: "Extracting selling points & audience…", procStep3: "Analyzing visual preferences…", chatAssist: "💬 Brand copilot", chatPlaceholder: "Select text on the right to edit…", chatConfirm: "✅ Confirm & save", archiveTitle: "📄 Structured profile v1.0", assistantFirst: "Done — here’s the extracted profile. Anything to change?", assistantEdit: "Updated the audience block on the right.", editTitle: "🧩 Brand DNA profile", fieldCore: "Positioning", fieldAudience: "Audience", fieldPersona: "Persona", fieldGuard: "Guardrails", saveEdit: "Save changes", aiPolish: "AI polish", polishing: "Polishing…", phEnter: "Enter ", deleteRef: "Remove reference: “{{name}}”", deleteScope: "Deletion scope:", delSection: "Remove reference in this section only", delSectionSub: "File stays in the library for other sections.", delGlobal: "Delete from library", delGlobalSub: "All sections using this file are affected.", delRegen: "Confirm delete & regenerate", refTitle: "📎 References", edit: "✏️ Edit", matrixEditIntro: "Suggested personas across the web:", accId: "Identity", visual: "Look", verbal: "Voice", matReq: "Asset needs", generating: "Generating…", genSub: "Re-extracting from remaining sources…", regenDone: "✓ Regenerated from remaining sources", agent: "🤖 Agent", editing: "Editing: ", agentHint: "Chat with Agent to refine this section.", agentPh: "Instruction or question…", savedIntro: "Suggested personas across channels:", liIdentity: "Identity: ", liVV: "Look & voice: ", liMat: "Assets: ", previewEdit: "Edit", delSourceTitle: "Remove reference" },
+        archive: { matrixTitle: "Marketing account matrix" }
+      }
+    };
+
+    const I18nContext = createContext({ locale: "zh", setLocale: () => {}, t: (k) => k });
+    function I18nProvider({ children }) {
+      const [locale, setLocale] = useState("zh");
+      const t = useCallback((path, vars) => {
+        const parts = path.split(".");
+        const walk = (obj) => parts.reduce((o, k) => (o != null && o[k] !== undefined) ? o[k] : undefined, obj);
+        let s = walk(I18N[locale]) ?? walk(I18N.zh) ?? path;
+        if (vars && typeof s === "string") {
+          Object.entries(vars).forEach(([k, v]) => { s = s.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), String(v)); });
+        }
+        return s;
+      }, [locale]);
+      const value = useMemo(() => ({ locale, setLocale, t }), [locale, t]);
+      return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+    }
+    function useI18n() { return useContext(I18nContext); }
+
     // ============ UI Components ============
     function Button({ variant = "primary", size = "md", className = "", children, ...props }) {
       const base = "inline-flex items-center justify-center font-medium transition-all duration-150 rounded-md disabled:opacity-50 disabled:cursor-not-allowed";
@@ -179,7 +272,10 @@
       return <button className={`${base} ${variants[variant] || variants.primary} ${sizes[size]} ${className}`} {...props}>{children}</button>;
     }
 
-    function MultiModalInputBar({ placeholder = "请输入...", submitLabel = "发送", onSubmit, onFileUpload, primaryLabel, onPrimaryClick, value: controlledValue, onChange: controlledOnChange, disabled = false, compact = false }) {
+    function MultiModalInputBar({ placeholder, submitLabel, onSubmit, onFileUpload, primaryLabel, onPrimaryClick, value: controlledValue, onChange: controlledOnChange, disabled = false, compact = false }) {
+      const { t } = useI18n();
+      const ph = placeholder ?? t("common.inputPlaceholder");
+      const sub = submitLabel ?? t("common.send");
       const [internalValue, setInternalValue] = useState("");
       const fileInputRef = useRef(null);
       const isControlled = controlledValue !== undefined && controlledOnChange !== undefined;
@@ -204,12 +300,12 @@
             <span>🖼️</span>
           </label>
           <button type="button" className="shrink-0 rounded p-1.5 text-gray-400 hover:text-black" title="语音输入">🎤</button>
-          <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} placeholder={placeholder} disabled={disabled}
+          <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} placeholder={ph} disabled={disabled}
             className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-sm text-black outline-none placeholder:text-gray-400" />
           {primaryLabel && onPrimaryClick ? (
             <Button size={compact ? "sm" : "md"} onClick={() => onPrimaryClick(inputValue.trim() || undefined)}>{primaryLabel}</Button>
           ) : (
-            <Button size={compact ? "sm" : "md"} onClick={handleSubmit} disabled={!inputValue.trim() || disabled}>{submitLabel}</Button>
+            <Button size={compact ? "sm" : "md"} onClick={handleSubmit} disabled={!inputValue.trim() || disabled}>{sub}</Button>
           )}
         </div>
       );
@@ -217,45 +313,48 @@
 
     // ============ Brand Brain Components ============
     function EmptyState({ onInputStart, onFileUpload, onLinkPaste }) {
+      const { locale, t } = useI18n();
       const [inputValue, setInputValue] = useState("");
+      const tagList = locale === "en" ? TAGS_EN : TAGS;
       return (
         <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
           <div className="flex max-w-2xl flex-col items-center gap-10">
             <div className="text-center">
-              <h1 className="text-3xl font-bold tracking-tight text-black md:text-4xl">✨ 欢迎构建你的专属【品牌知识库】 ✨</h1>
-              <p className="mt-4 text-base text-gray-600 md:text-lg">"把关于品牌的一切都丢给我，我来帮你提炼品牌核心基因"</p>
+              <h1 className="text-3xl font-bold tracking-tight text-black md:text-4xl">{t("brand.emptyWelcome")}</h1>
+              <p className="mt-4 text-base text-gray-600 md:text-lg">{t("brand.emptySub")}</p>
             </div>
             <div className="flex w-full flex-col items-center gap-4">
-              <p className="text-center text-sm font-medium text-gray-600">💡 不知从何说起？点击下方标签，获取快捷输入模板：</p>
+              <p className="text-center text-sm font-medium text-gray-600">{t("brand.emptyHint")}</p>
               <div className="flex flex-wrap justify-center gap-2">
-                {TAGS.map((tag) => (
+                {tagList.map((tag) => (
                   <button key={tag.label} type="button" onClick={() => setInputValue(p => (p ? p + "\n\n" + tag.template : tag.template))}
                     className="rounded-lg border-2 border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-black hover:bg-gray-50 hover:text-black">{tag.label}</button>
                 ))}
               </div>
             </div>
             <div className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 px-6 py-8">
-              <p className="mb-4 text-center text-sm font-medium text-gray-600">🧩 专属品牌 DNA 档案预览</p>
+              <p className="mb-4 text-center text-sm font-medium text-gray-600">{t("brand.dnaCard")}</p>
               <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
-                <div>• 核心定位: ...</div><div>• 核心受众: ...</div><div>• 品牌人设: ...</div><div>• 沟通避坑: ...</div>
+                <div>• {locale === "en" ? "Positioning: ..." : "核心定位: ..."}</div><div>• {locale === "en" ? "Audience: ..." : "核心受众: ..."}</div><div>• {locale === "en" ? "Persona: ..." : "品牌人设: ..."}</div><div>• {locale === "en" ? "Guardrails: ..." : "沟通避坑: ..."}</div>
               </div>
-              <p className="mt-4 text-center text-xs text-gray-400">( 投喂你的碎片信息，我来生成专属结构化档案 )</p>
+              <p className="mt-4 text-center text-xs text-gray-400">{t("brand.dnaHint")}</p>
             </div>
           </div>
           <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
-            <MultiModalInputBar placeholder="输入品牌介绍，或直接粘贴相关资料或截图..." submitLabel="发送" onSubmit={onInputStart} onFileUpload={onFileUpload} value={inputValue} onChange={setInputValue} />
+            <MultiModalInputBar placeholder={t("brand.inputPh")} onSubmit={onInputStart} onFileUpload={onFileUpload} value={inputValue} onChange={setInputValue} />
           </div>
         </div>
       );
     }
 
     function InputtingState({ items, onAddMore, onFileUpload, onStartParse }) {
+      const { t } = useI18n();
       return (
         <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
           <div className="flex max-w-2xl flex-col items-center gap-12">
-            <h1 className="text-3xl font-bold tracking-tight text-black md:text-4xl">✨ 欢迎构建你的专属【品牌知识库】 ✨</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-black md:text-4xl">{t("brand.emptyWelcome")}</h1>
             <div className="w-full space-y-3">
-              <p className="text-sm font-medium text-gray-600">已接收的内容：</p>
+              <p className="text-sm font-medium text-gray-600">{t("brand.received")}</p>
               {items.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
                   <span className="text-lg">{TYPE_ICONS[item.type]}</span>
@@ -265,42 +364,48 @@
             </div>
           </div>
           <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
-            <MultiModalInputBar placeholder="还可以继续添加..." onSubmit={onAddMore} onFileUpload={onFileUpload} primaryLabel="🚀 立即解析" onPrimaryClick={onStartParse} />
+            <MultiModalInputBar placeholder={t("brand.addMorePh")} onSubmit={onAddMore} onFileUpload={onFileUpload} primaryLabel={t("brand.parseNow")} onPrimaryClick={onStartParse} />
           </div>
         </div>
       );
     }
 
     function ProcessingState() {
+      const { t } = useI18n();
+      const steps = useMemo(() => [t("brand.procStep1"), t("brand.procStep2"), t("brand.procStep3")], [t]);
       const [idx, setIdx] = useState(0);
-      useEffect(() => { const t = setInterval(() => setIdx(i => (i + 1) % PROCESSING_MESSAGES.length), 2500); return () => clearInterval(t); }, []);
+      useEffect(() => { const timer = setInterval(() => setIdx(i => (i + 1) % steps.length), 2500); return () => clearInterval(timer); }, [steps.length]);
       return (
         <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center px-6 py-16">
           <div className="flex max-w-md flex-col items-center gap-10">
             <div className="text-center">
               <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 animate-pulse"><span className="text-2xl">⚙️</span></div>
-              <h2 className="text-xl font-semibold text-black">正在解析中...</h2>
+              <h2 className="text-xl font-semibold text-black">{t("brand.processing")}</h2>
             </div>
             <div className="space-y-3 text-center">
-              {PROCESSING_MESSAGES.map((msg, i) => (
-                <p key={msg} className={`text-sm ${i === idx ? "text-black" : "text-gray-400"}`}>"{msg}"</p>
+              {steps.map((msg, i) => (
+                <p key={msg} className={`text-sm ${i === idx ? "text-black" : "text-gray-400"}`}>&quot;{msg}&quot;</p>
               ))}
             </div>
             <div className="rounded-lg border border-gray-200 bg-gray-50 px-6 py-4 text-center shadow-sm">
-              <p className="text-sm text-gray-600">💡 提示：解析完成后，我们将为您生成一份结构化的品牌档案。</p>
-              <p className="mt-2 text-sm text-gray-500">如果有遗漏或偏差，您可以直接在下一步与我对话修改。</p>
+              <p className="text-sm text-gray-600">{t("brand.procTip")}</p>
+              <p className="mt-2 text-sm text-gray-500">{t("brand.procTip2")}</p>
             </div>
           </div>
           <div className="mt-auto w-full max-w-2xl border-t border-gray-200 pt-6">
-            <MultiModalInputBar placeholder="✨ 正在深度解析您的品牌资料中，请稍候..." submitLabel="⏳" onSubmit={() => {}} disabled />
+            <MultiModalInputBar placeholder={t("brand.procInputPh")} submitLabel="⏳" onSubmit={() => {}} disabled />
           </div>
         </div>
       );
     }
 
     function ChatCanvasState({ archive, onConfirm, variant = "default" }) {
+      const { locale, t } = useI18n();
       const [inputValue, setInputValue] = useState("");
-      const [messages, setMessages] = useState([{ id: "1", role: "assistant", content: "太棒了！我已经阅读完毕并为您提取了右侧的档案。您看看有什么需要修改的吗？" }]);
+      const [messages, setMessages] = useState([{ id: "1", role: "assistant", content: t("brand.assistantFirst") }]);
+      useEffect(() => {
+        setMessages([{ id: "1", role: "assistant", content: t("brand.assistantFirst") }]);
+      }, [locale, t]);
       const [selectedText, setSelectedText] = useState(null);
       const canvasRef = useRef(null);
       const isVariant = variant !== "default";
@@ -317,14 +422,14 @@
         setVariantMessages(prev => [...prev, userMsg, aiMsg]);
       };
 
-      const handleTextSelection = () => { const sel = window.getSelection(); const t = sel?.toString().trim(); setSelectedText(t || null); };
+      const handleTextSelection = () => { const sel = window.getSelection(); const txt = sel?.toString().trim(); setSelectedText(txt || null); };
       const addQuoteToInput = () => { if (selectedText) { setInputValue(p => (p ? p + "\n\n" : "") + '> "' + selectedText + '"\n'); setSelectedText(null); } };
       const handleSend = (text) => {
         if (!text.trim()) return;
         setInputValue("");
         if (isVariant && data) {
           setVariantMessages(prev => [...prev, { id: "u-" + Date.now(), role: "user", content: text }]);
-          setTimeout(() => setVariantMessages(prev => [...prev, { id: "a-" + Date.now(), role: "assistant", content: "收到！我会根据您的反馈进一步优化。" }]), 600);
+          setTimeout(() => setVariantMessages(prev => [...prev, { id: "a-" + Date.now(), role: "assistant", content: t("knowledge.assistantReply1") }]), 600);
         }
       };
 
@@ -334,7 +439,7 @@
         return (
           <div className="flex h-[calc(100vh-3.5rem)]">
             <div className="flex w-[45%] min-w-[320px] flex-col border-r border-gray-200 bg-white">
-              <div className="shrink-0 border-b border-gray-200 px-4 py-3"><h3 className="text-sm font-semibold text-black">💬 品牌构建助手</h3></div>
+              <div className="shrink-0 border-b border-gray-200 px-4 py-3"><h3 className="text-sm font-semibold text-black">{t("brand.chatAssist")}</h3></div>
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {displayMsgs.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -350,7 +455,7 @@
                 ) : null}
               </div>
               <div className="shrink-0 border-t border-gray-200 p-4">
-                <MultiModalInputBar placeholder={data.placeholder} submitLabel="发送" onSubmit={handleSend} value={inputValue} onChange={setInputValue} compact />
+                <MultiModalInputBar placeholder={data.placeholder} onSubmit={handleSend} value={inputValue} onChange={setInputValue} compact />
               </div>
             </div>
             <div ref={canvasRef} className="flex-1 overflow-y-auto bg-gray-50" onMouseUp={handleTextSelection}>
@@ -382,7 +487,7 @@
       return (
         <div className="flex h-[calc(100vh-3.5rem)]">
           <div className="flex w-[45%] min-w-[320px] flex-col border-r border-gray-200 bg-white">
-            <div className="shrink-0 border-b border-gray-200 px-4 py-3"><h3 className="text-sm font-semibold text-black">💬 品牌构建助手</h3></div>
+            <div className="shrink-0 border-b border-gray-200 px-4 py-3"><h3 className="text-sm font-semibold text-black">{t("brand.chatAssist")}</h3></div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -392,17 +497,17 @@
             </div>
             <div className="shrink-0 border-t border-gray-200 bg-white p-4">
               <div className="space-y-2">
-                <MultiModalInputBar placeholder="选中右侧文本进行修改..." submitLabel="发送" onSubmit={(text) => {
+                <MultiModalInputBar placeholder={t("brand.chatPlaceholder")} onSubmit={(text) => {
                   if (text.trim()) {
                     setMessages(p => [...p, { id: Date.now().toString(), role: "user", content: text }]);
                     setInputValue("");
-                    setTimeout(() => setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: "assistant", content: "收到！已为您在右侧面板实时更新了目标人群信息。" }]), 800);
+                    setTimeout(() => setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: "assistant", content: t("brand.assistantEdit") }]), 800);
                   }
                 }} value={inputValue} onChange={setInputValue} compact />
                 {selectedText && (
                   <div className="mt-2 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
-                    <span className="flex-1 truncate text-xs text-gray-600">已选: "{selectedText.slice(0, 40)}{selectedText.length > 40 ? "…" : ""}"</span>
-                    <Button size="sm" variant="secondary" onClick={addQuoteToInput}>添加到对话 ↙️</Button>
+                    <span className="flex-1 truncate text-xs text-gray-600">{t("common.selected")}: &quot;{selectedText.slice(0, 40)}{selectedText.length > 40 ? "…" : ""}&quot;</span>
+                    <Button size="sm" variant="secondary" onClick={addQuoteToInput}>{t("common.addToChat")}</Button>
                   </div>
                 )}
               </div>
@@ -410,8 +515,8 @@
           </div>
           <div ref={canvasRef} className="flex-1 overflow-y-auto bg-gray-50" onMouseUp={handleTextSelection}>
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
-              <h3 className="text-sm font-semibold">📄 品牌结构化档案 v1.0</h3>
-              <Button size="sm" onClick={onConfirm}>✅ 确认并封版记忆</Button>
+              <h3 className="text-sm font-semibold">{t("brand.archiveTitle")}</h3>
+              <Button size="sm" onClick={onConfirm}>{t("brand.chatConfirm")}</Button>
             </div>
             <div className="p-6 text-sm leading-relaxed">
               {archive.sections.map((section) =>
@@ -421,7 +526,7 @@
                     <div className="relative">
                       <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200" />
                       {section.content.flatMap((item) => {
-                        const match = item.match(/核心节点[：:]?(.+)/);
+                        const match = item.match(/核心节点[：:]?(.+)/) || item.match(/Key moments[：:]?(.+)/i);
                         const raw = match ? match[1] : item;
                         const nodes = raw.split(/[、,，]/).map(s => s.trim()).filter(Boolean);
                         return nodes.map((node, i) => (
@@ -451,6 +556,7 @@
     }
 
     function BrandArchiveEditState({ initialFields, onSave, onCancel }) {
+      const { t, locale } = useI18n();
       const [fields, setFields] = useState(initialFields);
       const [polishing, setPolishing] = useState(null);
 
@@ -476,9 +582,9 @@
               onClick={() => lightPolish(fields[keyName], keyName)}
               disabled={polishing === keyName || !fields[keyName]?.trim()}
               className="rounded px-2 py-0.5 text-xs font-medium text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
-              title="AI 轻量润色"
+              title={t("brand.aiPolish")}
             >
-              {polishing === keyName ? "润色中…" : "✨"}
+              {polishing === keyName ? t("brand.polishing") : "✨"}
             </button>
           </div>
           <textarea
@@ -486,7 +592,7 @@
             onChange={(e) => setFields((f) => ({ ...f, [keyName]: e.target.value }))}
             rows={2}
             className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-            placeholder={`请输入${label}…`}
+            placeholder={`${t("brand.phEnter")}${label}…`}
           />
         </div>
       );
@@ -497,16 +603,16 @@
             <div className="mb-8 flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-6 py-4">
               <div />
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={onCancel}>取消</Button>
-                <Button variant="secondary" size="sm" onClick={() => onSave(fields)}>保存修改</Button>
+                <Button variant="ghost" size="sm" onClick={onCancel}>{t("common.cancel")}</Button>
+                <Button variant="secondary" size="sm" onClick={() => onSave(fields)}>{t("brand.saveEdit")}</Button>
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-6 text-lg font-semibold text-black">🧩 专属品牌 DNA 档案</h2>
-              <FieldRow label="核心定位" keyName="core" />
-              <FieldRow label="核心受众" keyName="audience" />
-              <FieldRow label="品牌人设" keyName="persona" />
-              <FieldRow label="沟通避坑" keyName="guardrails" />
+              <h2 className="mb-6 text-lg font-semibold text-black">{t("brand.editTitle")}</h2>
+              <FieldRow label={t("brand.fieldCore")} keyName="core" />
+              <FieldRow label={t("brand.fieldAudience")} keyName="audience" />
+              <FieldRow label={t("brand.fieldPersona")} keyName="persona" />
+              <FieldRow label={t("brand.fieldGuard")} keyName="guardrails" />
             </div>
           </div>
         </div>
@@ -514,33 +620,34 @@
     }
 
     function DeleteSourceModal({ isOpen, onClose, sourceName, deleteScope, onScopeChange, onConfirm }) {
+      const { t } = useI18n();
       if (!isOpen) return null;
       return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
           <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="border-b border-gray-200 px-6 py-4">
-              <h2 className="text-lg font-semibold text-black">删除引用：「{sourceName}」</h2>
+              <h2 className="text-lg font-semibold text-black">{t("brand.deleteRef", { name: sourceName })}</h2>
             </div>
             <div className="space-y-4 px-6 py-5">
-              <p className="text-sm text-gray-600">请选择删除范围：</p>
+              <p className="text-sm text-gray-600">{t("brand.deleteScope")}</p>
               <label className="flex cursor-pointer gap-3 rounded-lg border px-4 py-3 transition-colors hover:bg-gray-50">
                 <input type="radio" name="deleteScope" checked={deleteScope === "section"} onChange={() => onScopeChange("section")} className="mt-1" />
                 <div>
-                  <p className="font-medium text-black">仅在此模块不再引用</p>
-                  <p className="mt-0.5 text-xs text-gray-500">资料仍保留在知识库，其他模块可继续使用</p>
+                  <p className="font-medium text-black">{t("brand.delSection")}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">{t("brand.delSectionSub")}</p>
                 </div>
               </label>
               <label className="flex cursor-pointer gap-3 rounded-lg border px-4 py-3 transition-colors hover:bg-gray-50">
                 <input type="radio" name="deleteScope" checked={deleteScope === "global"} onChange={() => onScopeChange("global")} className="mt-1" />
                 <div>
-                  <p className="font-medium text-black">从知识库彻底删除</p>
-                  <p className="mt-0.5 text-xs text-gray-500">所有引用该资料的模块都将受影响</p>
+                  <p className="font-medium text-black">{t("brand.delGlobal")}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">{t("brand.delGlobalSub")}</p>
                 </div>
               </label>
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
-              <Button variant="secondary" size="sm" onClick={onClose}>取消</Button>
-              <Button size="sm" onClick={onConfirm}>确认删除 并重新生成</Button>
+              <Button variant="secondary" size="sm" onClick={onClose}>{t("common.cancel")}</Button>
+              <Button size="sm" onClick={onConfirm}>{t("brand.delRegen")}</Button>
             </div>
           </div>
         </div>
@@ -548,6 +655,7 @@
     }
 
     function SavedPreviewState({ archive, onArchiveSave }) {
+      const { t, locale } = useI18n();
       const [editingSectionId, setEditingSectionId] = useState(null);
       const [agentPanelOpen, setAgentPanelOpen] = useState(false);
       const [editValue, setEditValue] = useState("");
@@ -718,7 +826,7 @@
             onFileUpload={handleAddFile}
             onLinkAdd={(url) => { handleAddLink(url); setAddSourceOpen(false); }}
             onTextAdd={(text) => { handleAddText(text); setAddSourceOpen(false); }}
-            title={editingSection ? `为「${editingSection.title}」补充资料` : "添加资料"}
+            title={editingSection ? `${t("knowledge.addForSectionPrefix")}${editingSection.title}${t("knowledge.addForSectionSuffix")}` : t("knowledge.addForSection")}
           />
           <div className={`mx-auto ${agentPanelOpen ? "max-w-4xl" : "max-w-6xl"}`}>
             <div className="space-y-10 border-t border-gray-200 pt-8">
@@ -730,8 +838,8 @@
                       <h2 className="text-lg font-semibold text-black">{section.title}</h2>
                       {isEditing ? (
                         <div className="flex shrink-0 gap-2">
-                          <Button variant="secondary" size="sm" onClick={handleCancel}>取消</Button>
-                          <Button size="sm" onClick={handleSave}>✅ 保存</Button>
+                          <Button variant="secondary" size="sm" onClick={handleCancel}>{t("common.cancel")}</Button>
+                          <Button size="sm" onClick={handleSave}>✅ {t("common.save")}</Button>
                         </div>
                       ) : (
                         <div className="flex shrink-0 items-center gap-2">
@@ -741,14 +849,14 @@
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setPopoverSectionId(p => p === section.id ? null : section.id); }}
                                 className={`border-0 bg-transparent p-0 align-super text-[10px] font-medium leading-none tabular-nums tracking-tight transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300/60 ${popoverSectionId === section.id ? "text-gray-700 underline decoration-gray-400/80 underline-offset-2" : "text-gray-400 hover:text-gray-600"}`}
-                                title="查看引用来源"
+                                title={t("knowledge.viewRefs")}
                               >
                                 [{section.sources.length}]
                               </button>
                               {popoverSectionId === section.id && (
                                 <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] max-w-[320px] rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
                                   <div className="absolute -top-1.5 left-4 h-2 w-2 rotate-45 border-l border-t border-gray-200 bg-white" />
-                                  <p className="mb-2 text-xs font-semibold text-gray-500">📎 引用来源</p>
+                                  <p className="mb-2 text-xs font-semibold text-gray-500">{t("brand.refTitle")}</p>
                                   <ul className="space-y-1.5">
                                     {(section.sources || []).map((src, i) => (
                                       <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
@@ -758,7 +866,7 @@
                                           type="button"
                                           onClick={(e) => handleDeleteSource(e, section, src)}
                                           className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-black"
-                                          title="删除引用"
+                                          title={t("brand.delSourceTitle")}
                                         >
                                           ×
                                         </button>
@@ -774,7 +882,7 @@
                             onClick={() => handleEnterEdit(section)}
                             className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black"
                           >
-                            ✏️ 编辑
+                            {t("brand.edit")}
                           </button>
                         </div>
                       )}
@@ -783,7 +891,7 @@
                       <div className="min-w-0 flex-1">
                         {isEditingMatrix && editMatrixData ? (
                           <div className="space-y-4">
-                            <p className="text-sm text-gray-500">基于您的品牌资料，建议通过以下「性格分身」进行全网发声：</p>
+                            <p className="text-sm text-gray-500">{t("brand.matrixEditIntro")}</p>
                             {editMatrixData.map((p, idx) => (
                               <div key={p.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                                 <div className="flex items-center gap-2 mb-3">
@@ -792,24 +900,24 @@
                                 </div>
                                 <div className="space-y-2">
                                   <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">账号身份</label>
+                                      <label className="block text-xs font-medium text-gray-500 mb-1">{t("brand.accId")}</label>
                                     <input type="text" value={p.identity} onChange={e => updateMatrixItem(idx, "identity", e.target.value)}
                                       className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
                                   </div>
                                   <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                      <label className="block text-xs font-medium text-gray-500 mb-1">画面</label>
+                                      <label className="block text-xs font-medium text-gray-500 mb-1">{t("brand.visual")}</label>
                                       <input type="text" value={p.visualVoice?.visual ?? ""} onChange={e => updateMatrixItem(idx, "visual", e.target.value)}
                                         className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" placeholder="极简、冷色调" />
                                     </div>
                                     <div>
-                                      <label className="block text-xs font-medium text-gray-500 mb-1">说话</label>
+                                      <label className="block text-xs font-medium text-gray-500 mb-1">{t("brand.verbal")}</label>
                                       <input type="text" value={p.visualVoice?.verbal ?? ""} onChange={e => updateMatrixItem(idx, "verbal", e.target.value)}
                                         className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" placeholder="理性、克制" />
                                     </div>
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">物料要求</label>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">{t("brand.matReq")}</label>
                                     <input type="text" value={p.materialReq} onChange={e => updateMatrixItem(idx, "materialReq", e.target.value)}
                                       className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
                                   </div>
@@ -831,19 +939,19 @@
                         {regeneratingSectionIds.has(section.id) && (
                           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-white/90">
                             <span className="regenerate-pulse text-2xl">◠  ◠  ◠</span>
-                            <p className="mt-3 text-sm font-medium text-gray-600">生成中</p>
-                            <p className="mt-1 text-xs text-gray-500">正在基于剩余资料重新提炼本模块内容...</p>
+                            <p className="mt-3 text-sm font-medium text-gray-600">{t("brand.generating")}</p>
+                            <p className="mt-1 text-xs text-gray-500">{t("brand.genSub")}</p>
                             <div className="mt-4 h-1.5 w-48 overflow-hidden rounded-full bg-gray-200">
                               <div className="h-full w-2/3 animate-pulse rounded-full bg-gray-400" />
                             </div>
                           </div>
                         )}
                         {regeneratedSectionIds.has(section.id) && (
-                          <div className="mb-3 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">✓ 已基于剩余资料重新生成</div>
+                          <div className="mb-3 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">{t("brand.regenDone")}</div>
                         )}
                         {section.matrixData ? (
                           <div>
-                            <p className="mb-4 text-sm text-gray-600">基于您的品牌资料，建议通过以下「性格分身」进行全网发声：</p>
+                            <p className="mb-4 text-sm text-gray-600">{t("brand.savedIntro")}</p>
                             <div className="space-y-4">
                               {section.matrixData.map((p) => (
                                 <div key={p.id} className="select-text cursor-text rounded-lg border border-gray-200 bg-white p-4 hover:bg-gray-50">
@@ -853,9 +961,9 @@
                                   </div>
                                   <hr className="my-3 border-gray-100" />
                                   <ul className="space-y-2 text-sm text-gray-700">
-                                    <li><strong>账号身份：</strong>{p.identity}</li>
-                                    <li><strong>画风口吻：</strong>{`画面要[${p.visualVoice?.visual ?? ""}]，说话要[${p.visualVoice?.verbal ?? ""}]`}</li>
-                                    <li><strong>物料要求：</strong>{p.materialReq}</li>
+                                    <li><strong>{t("brand.liIdentity")}</strong>{p.identity}</li>
+                                    <li><strong>{t("brand.liVV")}</strong>{t("channels.vvLine", { v: p.visualVoice?.visual ?? "", b: p.visualVoice?.verbal ?? "" })}</li>
+                                    <li><strong>{t("brand.liMat")}</strong>{p.materialReq}</li>
                                   </ul>
                                 </div>
                               ))}
@@ -881,19 +989,19 @@
           {agentPanelOpen && (
             <aside className="flex w-80 shrink-0 flex-col border-l border-gray-200 bg-gray-50">
               <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
-                <span className="text-sm font-semibold text-black">🤖 Agent</span>
+                <span className="text-sm font-semibold text-black">{t("brand.agent")}</span>
                 <button type="button" onClick={closeAgentPanel} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 {editingSection && (
-                  <p className="mb-4 text-xs text-gray-500">正在编辑：{editingSection.title}</p>
+                  <p className="mb-4 text-xs text-gray-500">{t("brand.editing")}{editingSection.title}</p>
                 )}
                 <div className="rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-600">
-                  与 Agent 对话，协助修改本模块内容。
+                  {t("brand.agentHint")}
                 </div>
                 <div className="mt-4">
-                  <textarea placeholder="输入指令或问题..." rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
-                  <button type="button" className="mt-2 w-full rounded-lg bg-black py-2 text-sm text-white hover:bg-gray-800">发送</button>
+                  <textarea placeholder={t("brand.agentPh")} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
+                  <button type="button" className="mt-2 w-full rounded-lg bg-black py-2 text-sm text-white hover:bg-gray-800">{t("common.send")}</button>
                 </div>
               </div>
             </aside>
@@ -920,6 +1028,7 @@
     }
 
     function LeftSidebar({ activeTab, onTabChange, saveFlyTrigger }) {
+      const { locale, setLocale, t } = useI18n();
       const [showSaveTooltip, setShowSaveTooltip] = useState(false);
       useEffect(() => {
         if (!saveFlyTrigger) return;
@@ -947,9 +1056,9 @@
           <div className="flex-1 p-4 space-y-1">
             <div className="text-sm font-semibold text-black">WorkfxHUB</div>
             {[
-              { id: "knowledge", label: "品牌资产" },
-              { id: "brand", label: "品牌基因" },
-              { id: "channels", label: "营销矩阵" }
+              { id: "knowledge", label: t("sidebar.navKnowledge") },
+              { id: "brand", label: t("sidebar.navBrand") },
+              { id: "channels", label: t("sidebar.navChannels") }
             ].map((tab) => (
               <div key={tab.id} className="relative overflow-visible">
                 <button
@@ -965,20 +1074,23 @@
                 </button>
                 {tab.id === "brand" && showSaveTooltip && (
                   <div className="tooltip-pop absolute bottom-full left-1/2 mb-2 -translate-x-1/2 z-10 whitespace-nowrap rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white shadow-lg">
-                    保存到这里
+                    {t("sidebar.saveTooltip")}
                   </div>
                 )}
               </div>
             ))}
           </div>
           <div className="border-t border-gray-200 p-4 space-y-4">
-            <div className="flex items-center gap-2"><span className="text-sm font-medium text-gray-600">Explore</span></div>
+            <div className="flex items-center gap-2"><span className="text-sm font-medium text-gray-600">{t("common.explore")}</span></div>
             <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <div className="flex items-center justify-between"><span className="text-sm font-medium text-black">Free</span><button type="button" className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-black hover:bg-gray-300">Upgrade</button></div>
+              <div className="flex items-center justify-between"><span className="text-sm font-medium text-black">{t("common.free")}</span><button type="button" className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-black hover:bg-gray-300">{t("common.upgrade")}</button></div>
               <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200"><div className="h-full w-4/5 rounded-full bg-success" /></div>
               <p className="mt-1 text-xs text-gray-500">0 / 200</p>
             </div>
-            <button type="button" className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-200"><span>中文</span></button>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setLocale("zh")} className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm transition-colors ${locale === "zh" ? "bg-gray-300 text-black font-medium" : "text-gray-600 hover:bg-gray-200"}`} aria-pressed={locale === "zh"}>{t("sidebar.langZh")}</button>
+              <button type="button" onClick={() => setLocale("en")} className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm transition-colors ${locale === "en" ? "bg-gray-300 text-black font-medium" : "text-gray-600 hover:bg-gray-200"}`} aria-pressed={locale === "en"}>{t("sidebar.langEn")}</button>
+            </div>
           </div>
         </aside>
       );
@@ -991,15 +1103,19 @@
         <path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" />
       </svg>
     );
-    const blueprintStructure = [
-      { title: "品牌定位", items: [{ subtitle: "品牌定位", width: "w-3/4" }, { subtitle: "Slogan", width: "w-1/2" }, { subtitle: "核心卖点", width: "w-full" }] },
-      { title: "核心受众", items: [{ subtitle: "核心人群", width: "w-2/3" }, { subtitle: "核心痛点", width: "w-full" }, { subtitle: "情感诉求", width: "w-4/5" }] },
-      { title: "品牌风格", items: [{ subtitle: "沟通语气", width: "w-3/4" }, { subtitle: "视觉调性", width: "w-1/2" }] },
-      { title: "营销节点与矩阵", items: [{ subtitle: "核心节点", width: "w-full" }, { subtitle: "社媒矩阵", width: "w-5/6" }] }
-    ];
+    function buildBlueprintStructure(t) {
+      return [
+        { title: t("blueprint.s1"), items: [{ subtitle: t("blueprint.i11"), width: "w-3/4" }, { subtitle: t("blueprint.i12"), width: "w-1/2" }, { subtitle: t("blueprint.i13"), width: "w-full" }] },
+        { title: t("blueprint.s2"), items: [{ subtitle: t("blueprint.i21"), width: "w-2/3" }, { subtitle: t("blueprint.i22"), width: "w-full" }, { subtitle: t("blueprint.i23"), width: "w-4/5" }] },
+        { title: t("blueprint.s3"), items: [{ subtitle: t("blueprint.i31"), width: "w-3/4" }, { subtitle: t("blueprint.i32"), width: "w-1/2" }] },
+        { title: t("blueprint.s4"), items: [{ subtitle: t("blueprint.i41"), width: "w-full" }, { subtitle: t("blueprint.i42"), width: "w-5/6" }] }
+      ];
+    }
 
     function BrandBlueprintPreviewModal({ isOpen, onClose }) {
       const { motion } = window.Motion;
+      const { t } = useI18n();
+      const blueprintStructure = useMemo(() => buildBlueprintStructure(t), [t]);
 
       const handleClose = () => {
         onClose();
@@ -1061,7 +1177,7 @@
             <button
               type="button"
               onClick={handleClose}
-              aria-label="关闭"
+              aria-label={t("blueprint.close")}
               className="absolute right-3 top-3 z-30 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200/80 bg-white text-lg leading-none text-gray-500 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
             >
               ✕
@@ -1074,8 +1190,8 @@
               >
                 <h2 className="flex flex-wrap items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
                   <Sparkles className="text-amber-400 h-7 w-7 md:h-8 md:w-8" />
-                  <span>构建你的</span>
-                  <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">「品牌策略蓝图」</span>
+                  <span>{t("blueprint.hero1")}</span>
+                  <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">{t("blueprint.hero2")}</span>
                 </h2>
               </motion.div>
 
@@ -1093,18 +1209,19 @@
     }
 
     function KnowledgeInitState({ items, onInputStart, onFileUpload, onLinkAdd, onTextAdd }) {
+      const { t } = useI18n();
       const [inputValue, setInputValue] = useState("");
       const [brandBlueprintModalOpen, setBrandBlueprintModalOpen] = useState(false);
       const [modalOpen, setModalOpen] = useState(false);
       const resolvedItems = items.map(it => ({ ...it, icon: TYPE_ICONS[it.type] || "📄" }));
       const dnaPreviewCardInner = (
         <>
-          <p className="mb-4 text-center text-sm font-semibold text-gray-700">品牌档案预览</p>
+          <p className="mb-4 text-center text-sm font-semibold text-gray-700">{t("knowledge.dnaPreviewTitle")}</p>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm text-gray-500">
-            <div>· 品牌定位：...</div>
-            <div>· 核心受众：...</div>
-            <div>· 品牌风格：...</div>
-            <div>· 营销节点：...</div>
+            <div>{t("knowledge.dna1")}</div>
+            <div>{t("knowledge.dna2")}</div>
+            <div>{t("knowledge.dna3")}</div>
+            <div>{t("knowledge.dna4")}</div>
           </div>
         </>
       );
@@ -1112,14 +1229,14 @@
         <div className="flex min-h-0 w-56 shrink-0 flex-col border-r border-gray-200 bg-gray-50 p-4">
           <div className="flex items-center gap-2 text-gray-500">
             <span className="text-xl">📄</span>
-            <span className="text-xs font-medium">来源</span>
+            <span className="text-xs font-medium">{t("knowledge.source")}</span>
           </div>
           <button
             type="button"
             onClick={() => setModalOpen(true)}
             className="mb-4 mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-black hover:bg-gray-50 hover:text-black"
           >
-            <span>+ 添加来源</span>
+            <span>{t("knowledge.addSource")}</span>
           </button>
           {items.length > 0 ? (
             <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
@@ -1133,8 +1250,8 @@
             </div>
           ) : (
             <div className="mt-6 flex flex-1 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-white px-4 py-8 text-center">
-              <p className="text-sm text-gray-400">已保存的来源将</p>
-              <p className="text-sm text-gray-400">显示在此处</p>
+              <p className="text-sm text-gray-400">{t("knowledge.emptySource1")}</p>
+              <p className="text-sm text-gray-400">{t("knowledge.emptySource2")}</p>
             </div>
           )}
         </div>
@@ -1143,7 +1260,7 @@
         <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-gray-200">
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-8">
             <div className="flex flex-col items-center justify-center">
-              <h1 className="text-2xl font-bold tracking-tight text-black md:text-3xl">✨ 开始沉淀你的「品牌资产」</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-black md:text-3xl">{t("knowledge.initTitle")}</h1>
               <button
                 type="button"
                 onClick={() => setBrandBlueprintModalOpen(true)}
@@ -1155,8 +1272,7 @@
           </div>
           <div className="shrink-0 border-t border-gray-200 bg-white p-4">
             <MultiModalInputBar
-              placeholder="输入品牌介绍，或直接上传相关文档/截图..."
-              submitLabel="发送"
+              placeholder={t("knowledge.inputPh")}
               onSubmit={onInputStart}
               onFileUpload={onFileUpload}
               value={inputValue}
@@ -1176,13 +1292,9 @@
       );
     }
 
-    const KNOWLEDGE_PARSING_MESSAGES = [
-      "正在从提取 [品牌定位]...",
-      "正在识别 [目标人群]...",
-      "正在构建 [品牌知识库]......"
-    ];
-
-    function AddSourceModal({ isOpen, onClose, onFileUpload, onLinkAdd, onTextAdd, title = "✨ 添加更多资料到「品牌知识库」" }) {
+    function AddSourceModal({ isOpen, onClose, onFileUpload, onLinkAdd, onTextAdd, title }) {
+      const { t } = useI18n();
+      const resolvedTitle = title ?? t("knowledge.addSourceModalTitle");
       const fileInputRef = useRef(null);
       const [linkUrl, setLinkUrl] = useState("");
       const [pasteText, setPasteText] = useState("");
@@ -1203,8 +1315,8 @@
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
           <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-              <h2 className="text-lg font-semibold text-black">{title}</h2>
-              <button type="button" onClick={onClose} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕ 关闭</button>
+              <h2 className="text-lg font-semibold text-black">{resolvedTitle}</h2>
+              <button type="button" onClick={onClose} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">{t("knowledge.closeX")}</button>
             </div>
             <div className="space-y-6 px-6 py-6">
               <div
@@ -1213,30 +1325,30 @@
                 onDragOver={handleDragOver}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <p className="text-base font-medium text-gray-700">拖放文件</p>
-                <p className="mt-1 text-sm text-gray-500">PDF、图片、Word、TXT 等</p>
+                <p className="text-base font-medium text-gray-700">{t("knowledge.dropFiles")}</p>
+                <p className="mt-1 text-sm text-gray-500">{t("knowledge.fileTypes")}</p>
                 <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,image/*" className="hidden" onChange={handleFileChange} />
               </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-black hover:bg-gray-50">📤 上传文件</button>
-                <button type="button" onClick={() => setActiveTab(activeTab === "link" ? "upload" : "link")} className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-colors ${activeTab === "link" ? "border-black bg-gray-50" : "border-gray-200 bg-white text-gray-700 hover:border-black hover:bg-gray-50"}`}>🔗 网页/链接</button>
-                <button type="button" onClick={() => setActiveTab(activeTab === "paste" ? "upload" : "paste")} className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-colors ${activeTab === "paste" ? "border-black bg-gray-50" : "border-gray-200 bg-white text-gray-700 hover:border-black hover:bg-gray-50"}`}>📋 复制的文字</button>
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-black hover:bg-gray-50">{t("knowledge.uploadFile")}</button>
+                <button type="button" onClick={() => setActiveTab(activeTab === "link" ? "upload" : "link")} className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-colors ${activeTab === "link" ? "border-black bg-gray-50" : "border-gray-200 bg-white text-gray-700 hover:border-black hover:bg-gray-50"}`}>{t("knowledge.webLink")}</button>
+                <button type="button" onClick={() => setActiveTab(activeTab === "paste" ? "upload" : "paste")} className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-colors ${activeTab === "paste" ? "border-black bg-gray-50" : "border-gray-200 bg-white text-gray-700 hover:border-black hover:bg-gray-50"}`}>{t("knowledge.pasteTab")}</button>
               </div>
               {activeTab === "link" && (
                 <div className="flex gap-2">
-                  <input type="url" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="输入网址..." className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
-                  <button type="button" onClick={() => { if (linkUrl.trim() && onLinkAdd) onLinkAdd(linkUrl.trim()); setLinkUrl(""); onClose(); }} className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white">添加</button>
+                  <input type="url" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder={t("knowledge.urlPh")} className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
+                  <button type="button" onClick={() => { if (linkUrl.trim() && onLinkAdd) onLinkAdd(linkUrl.trim()); setLinkUrl(""); onClose(); }} className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white">{t("knowledge.addBtn")}</button>
                 </div>
               )}
               {activeTab === "paste" && (
                 <div className="space-y-2">
-                  <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} placeholder="粘贴文字内容..." rows={4} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
-                  <button type="button" onClick={() => { if (pasteText.trim() && onTextAdd) onTextAdd(pasteText.trim()); setPasteText(""); onClose(); }} className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white">添加</button>
+                  <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} placeholder={t("knowledge.pastePh")} rows={4} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
+                  <button type="button" onClick={() => { if (pasteText.trim() && onTextAdd) onTextAdd(pasteText.trim()); setPasteText(""); onClose(); }} className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white">{t("knowledge.addBtn")}</button>
                 </div>
               )}
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>储存空间</span>
+                  <span>{t("knowledge.storage")}</span>
                   <span>1.2GB / 5.0GB</span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
@@ -1256,12 +1368,14 @@
     ];
 
     function KnowledgeParsingState({ items, onFileUpload, onLinkAdd, onTextAdd }) {
+      const { t } = useI18n();
+      const parsingMsgs = useMemo(() => [t("knowledge.parsingMsg1"), t("knowledge.parsingMsg2"), t("knowledge.parsingMsg3")], [t]);
       const [msgIdx, setMsgIdx] = useState(0);
       const [modalOpen, setModalOpen] = useState(false);
       useEffect(() => {
-        const t = setInterval(() => setMsgIdx(i => (i + 1) % KNOWLEDGE_PARSING_MESSAGES.length), 2000);
-        return () => clearInterval(t);
-      }, []);
+        const timer = setInterval(() => setMsgIdx(i => (i + 1) % parsingMsgs.length), 2000);
+        return () => clearInterval(timer);
+      }, [parsingMsgs.length]);
       const displayItems = items.length > 0 ? items : KNOWLEDGE_PARSING_SAMPLE_ITEMS;
       const resolvedItems = displayItems.map(it => ({ ...it, icon: TYPE_ICONS[it.type] || "📄" }));
       return (
@@ -1273,7 +1387,7 @@
               onClick={() => setModalOpen(true)}
               className="mb-4 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-black hover:bg-gray-50 hover:text-black"
             >
-              <span>+ 添加来源</span>
+              <span>{t("knowledge.addSource")}</span>
             </button>
             <div className="flex-1 space-y-2 overflow-y-auto">
               {resolvedItems.map((item) => (
@@ -1287,9 +1401,9 @@
           </div>
           <div className="flex min-w-0 flex-1 flex-col border-r border-gray-200">
             <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-8 py-12">
-              <h2 className="text-xl font-bold text-black md:text-2xl">🔄 正在深度解析投喂的内容...</h2>
+              <h2 className="text-xl font-bold text-black md:text-2xl">{t("knowledge.parsingTitle")}</h2>
               <div className="mt-8 space-y-3 text-left">
-                {KNOWLEDGE_PARSING_MESSAGES.map((msg, i) => (
+                {parsingMsgs.map((msg, i) => (
                   <p key={msg} className={`text-sm ${i === msgIdx ? "text-black font-medium" : "text-gray-400"}`}>
                     &gt; {msg}
                   </p>
@@ -1298,7 +1412,7 @@
             </div>
             <div className="shrink-0 border-t border-gray-200 bg-gray-50 p-4">
               <div className="flex items-center justify-center rounded-lg border-2 border-gray-200 bg-white px-4 py-3 text-sm text-gray-400">
-                可继续添加素材，暂不支持对话
+                {t("knowledge.parsingHint")}
               </div>
             </div>
           </div>
@@ -1323,6 +1437,7 @@
     };
 
     function SourceRefBadge({ sectionKey, variant }) {
+      const { t } = useI18n();
       const sources = typeof PREVIEW_SECTION_SOURCES[sectionKey] === "function" ? PREVIEW_SECTION_SOURCES[sectionKey](variant) : (PREVIEW_SECTION_SOURCES[sectionKey] || []);
       const [hover, setHover] = useState(false);
       if (sources.length === 0) return null;
@@ -1331,14 +1446,14 @@
           <button
             type="button"
             className={`border-0 bg-transparent p-0 align-super text-[10px] font-medium leading-none tabular-nums tracking-tight transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300/60 ${hover ? "text-gray-600 underline decoration-gray-400/80 underline-offset-2" : "text-gray-400 hover:text-gray-500"}`}
-            title="查看引用来源"
+            title={t("knowledge.viewRefs")}
           >
             [{sources.length}]
           </button>
           {hover && (
             <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] max-w-[320px] rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
               <div className="absolute -top-1.5 left-4 h-2 w-2 rotate-45 border-l border-t border-gray-200 bg-white" />
-              <p className="mb-2 text-xs font-semibold text-gray-500">📎 引用来源</p>
+              <p className="mb-2 text-xs font-semibold text-gray-500">{t("knowledge.refSources")}</p>
               <ul className="space-y-1.5">
                 {sources.map((src, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
@@ -1354,6 +1469,7 @@
     }
 
     function KnowledgeChatState({ items, onFileUpload, onLinkAdd, onTextAdd, onSend, onConfirm, onSaveToBrand, onSaveToChannels, variant }) {
+      const { t, locale } = useI18n();
       const [modalOpen, setModalOpen] = useState(false);
       const [previewOpen, setPreviewOpen] = useState(variant === "conflict");
       const [matrixPreviewOpen, setMatrixPreviewOpen] = useState(false);
@@ -1386,7 +1502,7 @@
       const handleSaveBrandDna = () => {
         onSaveToBrand && onSaveToBrand();
         setPhase("channel_matrix");
-        setMessages(prev => [...prev, { id: "ai-" + Date.now(), role: "assistant", content: "好的！品牌档案已存入。那现在我们再来看一下整个账号矩阵相关的部分～" }]);
+        setMessages(prev => [...prev, { id: "ai-" + Date.now(), role: "assistant", content: t("knowledge.assistantReply2") }]);
       };
       const addQuoteToInput = () => { if (selectedText) { setQuotedRef(selectedText); setSelectedText(null); setSelectionRect(null); } };
       const removeQuotedRef = () => setQuotedRef(null);
@@ -1399,7 +1515,7 @@
         setInputValue("");
         setQuotedRef(null);
         setMessages(prev => [...prev, { id: "u-" + Date.now(), role: "user", content }]);
-        setTimeout(() => setMessages(prev => [...prev, { id: "a-" + Date.now(), role: "assistant", content: "收到！我会根据您的反馈进一步优化档案内容。" }]), 600);
+        setTimeout(() => setMessages(prev => [...prev, { id: "a-" + Date.now(), role: "assistant", content: t("knowledge.assistantReply1") }]), 600);
         if (onSend) onSend(content);
       };
       const showRightPanel = previewOpen || matrixPreviewOpen;
@@ -1407,29 +1523,29 @@
         <div className={`flex min-h-0 min-w-0 flex-1 flex-col border-r border-gray-200 ${showRightPanel ? "w-[320px] shrink-0" : ""}`}>
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 pb-32 space-y-4">
             <div className={showRightPanel ? "max-w-full" : "mx-auto max-w-2xl"}>
-              <p className="text-base text-gray-800 leading-relaxed">&quot;{previewOpen ? "档案已生成，请预览。" : "档案已生成！包含以下内容："}&quot;</p>
+              <p className="text-base text-gray-800 leading-relaxed">&quot;{previewOpen ? t("knowledge.chatIntro1") : t("knowledge.chatIntro2")}&quot;</p>
               {!previewOpen && (
                 <ul className="mt-4 space-y-2 pl-4">
-                  <li className="text-sm text-gray-700"><strong>品牌定位</strong> — 纯植物护肤、科技与自然并重的价值主张。</li>
-                  <li className="text-sm text-gray-700"><strong>核心受众</strong> — 一二线城市新锐白领，关注职场压力与肌肤状态。</li>
-                  <li className="text-sm text-gray-700"><strong>品牌风格</strong> — 专业严谨、温柔治愈，避免说教感。</li>
-                  <li className="text-sm text-gray-700"><strong>物料风格</strong> — 自然绿与极简白，日系清新、高光泽视觉。</li>
-                  <li className="text-sm text-gray-700"><strong>品牌红线与准则</strong> — 禁用平替/廉价/化工表述，避让指定竞品。</li>
-                  <li className="text-sm text-gray-700"><strong>营销节点</strong> — 女神节、秋季抗敏周、双11 等关键战役。</li>
-                  <li className="text-sm text-gray-700"><strong>营销账号矩阵</strong> — 多平台「性格分身」与内容分工。</li>
+                  <li className="text-sm text-gray-700"><strong>{t("knowledge.chatLi1")}</strong>{t("knowledge.chatLi1b")}</li>
+                  <li className="text-sm text-gray-700"><strong>{t("knowledge.chatLi2")}</strong>{t("knowledge.chatLi2b")}</li>
+                  <li className="text-sm text-gray-700"><strong>{t("knowledge.chatLi3")}</strong>{t("knowledge.chatLi3b")}</li>
+                  <li className="text-sm text-gray-700"><strong>{t("knowledge.chatLi4")}</strong>{t("knowledge.chatLi4b")}</li>
+                  <li className="text-sm text-gray-700"><strong>{t("knowledge.chatLi5")}</strong>{t("knowledge.chatLi5b")}</li>
+                  <li className="text-sm text-gray-700"><strong>{t("knowledge.chatLi6")}</strong>{t("knowledge.chatLi6b")}</li>
+                  <li className="text-sm text-gray-700"><strong>{t("knowledge.chatLi7")}</strong>{t("knowledge.chatLi7b")}</li>
                 </ul>
               )}
               <div className="mt-6 rounded-xl border-2 border-gray-200 bg-white p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xl">📄</div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-semibold text-black">品牌资产全案</h3>
+                    <h3 className="text-sm font-semibold text-black">{t("knowledge.assetCardTitle")}</h3>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <button type="button" onClick={() => setPreviewOpen(p => !p)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">👁️ 预览详情</button>
+                      <button type="button" onClick={() => setPreviewOpen(p => !p)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">{t("knowledge.previewDetail")}</button>
                       {phase === "channel_matrix" ? (
-                        <span className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-500">已保存</span>
+                        <span className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-500">{t("knowledge.saved")}</span>
                       ) : (
-                        <button type="button" onClick={handleSaveBrandDna} className="rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800">✅ 保存</button>
+                        <button type="button" onClick={handleSaveBrandDna} className="rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800">{t("knowledge.saveBtn")}</button>
                       )}
                     </div>
                   </div>
@@ -1441,17 +1557,17 @@
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xl">📂</div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-semibold text-black">渠道矩阵方案</h3>
+                    <h3 className="text-sm font-semibold text-black">{t("knowledge.matrixCardTitle")}</h3>
                     <div className="mt-3 flex gap-2">
                       {matrixPreviewOpen ? (
                         <>
-                          <span className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-500">预览中...</span>
-                          <Button size="sm" onClick={() => { onSaveToChannels && onSaveToChannels(); setMatrixPreviewOpen(false); }}>⚡ 同步</Button>
+                          <span className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-500">{t("knowledge.previewing")}</span>
+                          <Button size="sm" onClick={() => { onSaveToChannels && onSaveToChannels(); setMatrixPreviewOpen(false); }}>{t("knowledge.sync")}</Button>
                         </>
                       ) : (
                         <>
-                          <button type="button" onClick={() => setMatrixPreviewOpen(true)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">👁️ 预览详情</button>
-                          <button type="button" onClick={() => onSaveToChannels && onSaveToChannels()} className="rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-50">⚡ 存入渠道</button>
+                          <button type="button" onClick={() => setMatrixPreviewOpen(true)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">{t("knowledge.previewDetail")}</button>
+                          <button type="button" onClick={() => onSaveToChannels && onSaveToChannels()} className="rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-50">{t("knowledge.saveChannels")}</button>
                         </>
                       )}
                     </div>
@@ -1476,14 +1592,14 @@
               <div className="flex min-w-0 items-center gap-2 rounded-lg border-2 border-gray-300 bg-white p-2 transition-colors focus-within:border-black">
                 <button type="button" className="shrink-0 rounded p-2 text-gray-400 hover:text-black">🎤</button>
                 <input type="text" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-                  placeholder={matrixPreviewOpen ? "继续提出修改意见" : previewOpen ? "继续指挥修改" : "对建议不满意？在这里告诉我你的想法..."} className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-sm text-black outline-none placeholder:text-gray-400" />
-                <Button size="sm" onClick={handleSend} disabled={!inputValue.trim() && !quotedRef}>发送</Button>
+                  placeholder={matrixPreviewOpen ? t("knowledge.ph1") : previewOpen ? t("knowledge.ph2") : t("knowledge.ph3")} className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-sm text-black outline-none placeholder:text-gray-400" />
+                <Button size="sm" onClick={handleSend} disabled={!inputValue.trim() && !quotedRef}>{t("common.send")}</Button>
               </div>
               {quotedRef && (
                 <div className="flex items-start gap-2 rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2">
-                  <span className="mt-0.5 shrink-0 text-xs text-gray-500">引用:</span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-gray-700" title={quotedRef}>"{quotedRef.length > 36 ? quotedRef.slice(0, 36) + "…" : quotedRef}"</span>
-                  <button type="button" onClick={removeQuotedRef} className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-black" title="移除">×</button>
+                  <span className="mt-0.5 shrink-0 text-xs text-gray-500">{t("knowledge.quote")}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-gray-700" title={quotedRef}>&quot;{quotedRef.length > 36 ? quotedRef.slice(0, 36) + "…" : quotedRef}&quot;</span>
+                  <button type="button" onClick={removeQuotedRef} className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-black" title={t("common.removeQuote")}>×</button>
                 </div>
               )}
             </div>
@@ -1500,7 +1616,7 @@
               onClick={() => setModalOpen(true)}
               className="mb-4 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-black hover:bg-gray-50 hover:text-black"
             >
-              <span>+ 添加来源</span>
+              <span>{t("knowledge.addSource")}</span>
             </button>
             <div className="flex-1 space-y-2 overflow-y-auto">
               {resolvedItems.map((item) => (
@@ -1516,17 +1632,17 @@
           {matrixPreviewOpen && (
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-gray-50">
               <div className="shrink-0 flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3">
-                <h2 className="text-base font-semibold text-black">预览详情 (Preview Panel)</h2>
+                <h2 className="text-base font-semibold text-black">{t("knowledge.previewPanel")}</h2>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" onClick={() => { onSaveToChannels && onSaveToChannels(); setMatrixPreviewOpen(false); }}>✅ 确认方案：同步并创建这 {CHANNELS_MATRIX_PROPOSAL.length} 个账号配置到「渠道账号」</Button>
+                  <Button size="sm" onClick={() => { onSaveToChannels && onSaveToChannels(); setMatrixPreviewOpen(false); }}>{t("knowledge.confirmMatrix", { n: getChannelMatrixProposal(locale).length })}</Button>
                   <button type="button" onClick={() => setMatrixPreviewOpen(false)} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
                 </div>
               </div>
               <div className="preview-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-6" onMouseUp={handleTextSelection}>
-                <h2 className="text-lg font-semibold text-black">🛡️ 营销账号矩阵</h2>
-                <p className="mt-2 text-sm text-gray-600">基于您的品牌资料，建议通过以下「性格分身」进行全网发声：</p>
+                <h2 className="text-lg font-semibold text-black">{t("knowledge.matrixHeader")}</h2>
+                <p className="mt-2 text-sm text-gray-600">{t("knowledge.matrixIntro")}</p>
                 <div className="mt-6 space-y-4">
-                  {CHANNELS_MATRIX_PROPOSAL.map((p) => (
+                  {getChannelMatrixProposal(locale).map((p) => (
                     <div key={p.id} className="select-text cursor-text rounded-lg border border-gray-200 bg-white p-4 hover:bg-gray-50">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{p.icon}</span>
@@ -1534,101 +1650,164 @@
                       </div>
                       <hr className="my-3 border-gray-100" />
                       <ul className="space-y-2 text-sm text-gray-700">
-                        <li><strong>账号身份：</strong>{p.identity}</li>
-                        <li><strong>画风口吻：</strong>{`画面要[${p.visualVoice?.visual ?? ""}]，说话要[${p.visualVoice?.verbal ?? ""}]`}</li>
-                        <li><strong>物料要求：</strong>{p.materialReq}</li>
+                        <li><strong>{t("knowledge.identityLabel")}</strong>{p.identity}</li>
+                        <li><strong>{t("knowledge.vvLabel")}</strong>{t("channels.vvLine", { v: p.visualVoice?.visual ?? "", b: p.visualVoice?.verbal ?? "" })}</li>
+                        <li><strong>{t("knowledge.matLabel")}</strong>{p.materialReq}</li>
                       </ul>
                     </div>
                   ))}
                 </div>
                 <div className="mt-6 rounded-lg border-2 border-dashed border-gray-200 bg-white p-4 text-center">
-                  <button type="button" className="text-sm font-medium text-gray-500 hover:text-black">+ 增加新渠道建议：如其他平台...</button>
+                  <button type="button" className="text-sm font-medium text-gray-500 hover:text-black">{t("knowledge.addChannel")}</button>
                 </div>
-                <p className="mt-4 text-center text-sm text-gray-500">✨ 告诉 AI：我觉得这个矩阵太重了，减少几个渠道</p>
+                <p className="mt-4 text-center text-sm text-gray-500">{t("knowledge.matrixHint")}</p>
               </div>
             </div>
           )}
           {previewOpen && !matrixPreviewOpen && (
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-gray-50">
               <div className="shrink-0 flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3">
-                <h2 className="text-base font-semibold text-black">预览详情 (Preview Panel)</h2>
+                <h2 className="text-base font-semibold text-black">{t("knowledge.previewPanel")}</h2>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" onClick={() => onSaveToBrand && onSaveToBrand()}>✅ 确认无误，同步到品牌模块</Button>
+                  <Button size="sm" onClick={() => onSaveToBrand && onSaveToBrand()}>{t("knowledge.confirmBrand")}</Button>
                   <button type="button" onClick={() => setPreviewOpen(false)} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
                 </div>
               </div>
               <div className="preview-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-6" onMouseUp={handleTextSelection}>
-                <h2 className="text-lg font-semibold text-black">🛡️ 品牌资产全案详情</h2>
-                <div className="mt-6 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">品牌定位<SourceRefBadge sectionKey={1} variant={variant} /></h3>
-                  <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
-                    <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 品牌定位：纯植物提取护肤</li>
-                    <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Slogan：科技还原自然之美</li>
-                    <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心卖点：24小时持久保湿、0致敏添加</li>
-                  </ul>
-                </div>
-                <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">核心受众<SourceRefBadge sectionKey={2} variant={variant} /></h3>
-                  <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
-                    <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心人群：25-35岁一二线城市新锐白领</li>
-                    <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心痛点：长期面对电脑导致肌肤暗沉、工作压力大追求松弛感</li>
-                  </ul>
-                </div>
-                <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">品牌风格{variant === "conflict" && <span className="ml-2 text-amber-600">(❓ 待补全)</span>}<SourceRefBadge sectionKey={3} variant={variant} /></h3>
-                  {variant === "conflict" ? (
-                    <div className="mt-3 rounded-lg border-2 border-amber-200 bg-amber-50 p-4">
-                      <div className="flex items-start gap-2">
-                        <span className="text-amber-600">[ ! ]</span>
-                        <p className="text-sm text-gray-700">尚未从来源中捕捉到您的发声习惯。</p>
-                      </div>
-                      <hr className="my-3 border-amber-200" />
-                      <p className="text-xs font-medium text-gray-600">💡 补全建议：</p>
-                      <ul className="mt-1 space-y-1 pl-4 text-sm text-gray-700">
-                        <li>· 在左侧上传几段您的 <span className="rounded bg-amber-100/80 px-1 py-0.5">往期推文</span> 或 <span className="rounded bg-amber-100/80 px-1 py-0.5">宣传文案</span></li>
-                        <li>· 或直接描述：&quot;我希望像[苹果]一样简洁&quot;</li>
+                <h2 className="text-lg font-semibold text-black">{t("knowledge.previewBrandTitle")}</h2>
+                {locale === "en" ? (
+                  <>
+                    <div className="mt-6 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">{t("knowledge.brandPos")}<SourceRefBadge sectionKey={1} variant={variant} /></h3>
+                      <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Positioning: plant-based skincare</li>
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Slogan: science restores nature’s beauty</li>
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Key benefits: 24h hydration, zero irritants</li>
                       </ul>
                     </div>
-                  ) : (
-                    <p className="mt-2 select-text cursor-text rounded-md px-2 py-1 text-sm leading-relaxed text-gray-700 hover:bg-gray-100">沟通语气：专业严谨、温柔治愈、不爹味说教</p>
-                  )}
-                </div>
-                <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">物料风格<SourceRefBadge sectionKey={4} variant={variant} /></h3>
-                  <p className="mt-2 select-text cursor-text rounded-md px-2 py-1 text-sm leading-relaxed text-gray-700 hover:bg-gray-100">品牌主色调：#00FF00 (自然绿)、#FFFFFF (极简白)</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">极简留白</span>
-                    <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">日系清新</span>
-                    <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">高光泽感</span>
-                  </div>
-                </div>
-                <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">品牌红线与准则<SourceRefBadge sectionKey={5} variant={variant} /></h3>
-                  <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
-                    <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 禁用词汇：平替、廉价、化工</li>
-                    <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 竞品避让：品牌X、品牌Y</li>
-                  </ul>
-                </div>
-                <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">营销节点<SourceRefBadge sectionKey={6} variant={variant} /></h3>
-                  <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
-                    <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心节点：3.8女神节、9月秋季抗敏周、双11大促</li>
-                  </ul>
-                </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">{t("knowledge.coreAudience")}<SourceRefBadge sectionKey={2} variant={variant} /></h3>
+                      <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Segment: 25–35 urban professionals</li>
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Pain points: screen fatigue, dull skin, need to unwind</li>
+                      </ul>
+                    </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">{t("knowledge.brandStyle")}{variant === "conflict" && <span className="ml-2 text-amber-600">{t("knowledge.pendingStyle")}</span>}<SourceRefBadge sectionKey={3} variant={variant} /></h3>
+                      {variant === "conflict" ? (
+                        <div className="mt-3 rounded-lg border-2 border-amber-200 bg-amber-50 p-4">
+                          <div className="flex items-start gap-2">
+                            <span className="text-amber-600">[ ! ]</span>
+                            <p className="text-sm text-gray-700">{t("knowledge.conflictNote")}</p>
+                          </div>
+                          <hr className="my-3 border-amber-200" />
+                          <p className="text-xs font-medium text-gray-600">{t("knowledge.suggestTitle")}</p>
+                          <ul className="mt-1 space-y-1 pl-4 text-sm text-gray-700">
+                            <li>{t("knowledge.suggest1")}<span className="rounded bg-amber-100/80 px-1 py-0.5">{t("knowledge.suggest1a")}</span>{t("knowledge.suggest1b")}<span className="rounded bg-amber-100/80 px-1 py-0.5">{t("knowledge.suggest1c")}</span></li>
+                            <li>{t("knowledge.suggest2")}</li>
+                          </ul>
+                        </div>
+                      ) : (
+                        <p className="mt-2 select-text cursor-text rounded-md px-2 py-1 text-sm leading-relaxed text-gray-700 hover:bg-gray-100">Tone: professional, gentle healing, non-preachy</p>
+                      )}
+                    </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">{t("knowledge.materialStyle")}<SourceRefBadge sectionKey={4} variant={variant} /></h3>
+                      <p className="mt-2 select-text cursor-text rounded-md px-2 py-1 text-sm leading-relaxed text-gray-700 hover:bg-gray-100">Palette: #00FF00 (nature green), #FFFFFF (minimal white)</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">Airy layout</span>
+                        <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">Japanese-fresh</span>
+                        <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">Glossy</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">{t("knowledge.redlines")}<SourceRefBadge sectionKey={5} variant={variant} /></h3>
+                      <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Banned: dupe, cheap, chemical</li>
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Competitors to avoid: Brand X, Brand Y</li>
+                      </ul>
+                    </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">{t("knowledge.marketingNodes")}<SourceRefBadge sectionKey={6} variant={variant} /></h3>
+                      <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Key moments: Women’s Day, fall week, Double 11</li>
+                      </ul>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="mt-6 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">品牌定位<SourceRefBadge sectionKey={1} variant={variant} /></h3>
+                      <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 品牌定位：纯植物提取护肤</li>
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Slogan：科技还原自然之美</li>
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心卖点：24小时持久保湿、0致敏添加</li>
+                      </ul>
+                    </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">核心受众<SourceRefBadge sectionKey={2} variant={variant} /></h3>
+                      <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心人群：25-35岁一二线城市新锐白领</li>
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心痛点：长期面对电脑导致肌肤暗沉、工作压力大追求松弛感</li>
+                      </ul>
+                    </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">品牌风格{variant === "conflict" && <span className="ml-2 text-amber-600">(❓ 待补全)</span>}<SourceRefBadge sectionKey={3} variant={variant} /></h3>
+                      {variant === "conflict" ? (
+                        <div className="mt-3 rounded-lg border-2 border-amber-200 bg-amber-50 p-4">
+                          <div className="flex items-start gap-2">
+                            <span className="text-amber-600">[ ! ]</span>
+                            <p className="text-sm text-gray-700">{t("knowledge.conflictNote")}</p>
+                          </div>
+                          <hr className="my-3 border-amber-200" />
+                          <p className="text-xs font-medium text-gray-600">{t("knowledge.suggestTitle")}</p>
+                          <ul className="mt-1 space-y-1 pl-4 text-sm text-gray-700">
+                            <li>· 在左侧上传几段您的 <span className="rounded bg-amber-100/80 px-1 py-0.5">往期推文</span> 或 <span className="rounded bg-amber-100/80 px-1 py-0.5">宣传文案</span></li>
+                            <li>· 或直接描述：&quot;我希望像[苹果]一样简洁&quot;</li>
+                          </ul>
+                        </div>
+                      ) : (
+                        <p className="mt-2 select-text cursor-text rounded-md px-2 py-1 text-sm leading-relaxed text-gray-700 hover:bg-gray-100">沟通语气：专业严谨、温柔治愈、不爹味说教</p>
+                      )}
+                    </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">物料风格<SourceRefBadge sectionKey={4} variant={variant} /></h3>
+                      <p className="mt-2 select-text cursor-text rounded-md px-2 py-1 text-sm leading-relaxed text-gray-700 hover:bg-gray-100">品牌主色调：#00FF00 (自然绿)、#FFFFFF (极简白)</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">极简留白</span>
+                        <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">日系清新</span>
+                        <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">高光泽感</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">品牌红线与准则<SourceRefBadge sectionKey={5} variant={variant} /></h3>
+                      <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 禁用词汇：平替、廉价、化工</li>
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 竞品避让：品牌X、品牌Y</li>
+                      </ul>
+                    </div>
+                    <div className="mt-4 border-b border-gray-200 pb-4">
+                      <h3 className="text-sm font-semibold text-black">营销节点<SourceRefBadge sectionKey={6} variant={variant} /></h3>
+                      <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
+                        <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心节点：3.8女神节、9月秋季抗敏周、双11大促</li>
+                      </ul>
+                    </div>
+                  </>
+                )}
                 <div className="mt-4">
-                  <h3 className="text-sm font-semibold text-black">营销账号矩阵<SourceRefBadge sectionKey={7} variant={variant} /></h3>
-                  <p className="mt-2 text-sm text-gray-600">基于您的品牌资料，建议通过以下「性格分身」进行全网发声：</p>
+                  <h3 className="text-sm font-semibold text-black">{t("knowledge.matrixSection")}<SourceRefBadge sectionKey={7} variant={variant} /></h3>
+                  <p className="mt-2 text-sm text-gray-600">{t("knowledge.savedIntro")}</p>
                   <div className="mt-4 space-y-3">
-                    {CHANNELS_MATRIX_PROPOSAL.map((p) => (
+                    {getChannelMatrixProposal(locale).map((p) => (
                       <div key={p.id} className="select-text cursor-text rounded-lg border border-gray-200 bg-white p-3 hover:bg-gray-50">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{p.icon}</span>
                           <h4 className="text-sm font-semibold text-black">{p.name} ({p.role})</h4>
                         </div>
                         <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
-                          <li><strong>账号身份：</strong>{p.identity}</li>
-                          <li><strong>画风口吻：</strong>{`画面要[${p.visualVoice?.visual ?? ""}]，说话要[${p.visualVoice?.verbal ?? ""}]`}</li>
-                          <li><strong>物料要求：</strong>{p.materialReq}</li>
+                          <li><strong>{t("brand.liIdentity")}</strong>{p.identity}</li>
+                          <li><strong>{t("brand.liVV")}</strong>{t("channels.vvLine", { v: p.visualVoice?.visual ?? "", b: p.visualVoice?.verbal ?? "" })}</li>
+                          <li><strong>{t("brand.liMat")}</strong>{p.materialReq}</li>
                         </ul>
                       </div>
                     ))}
@@ -1645,32 +1824,37 @@
                 top: Math.max(8, selectionRect.top - 44)
               }}
             >
-              <Button size="sm" variant="secondary" onClick={addQuoteToInput}>添加到对话 ↙️</Button>
+              <Button size="sm" variant="secondary" onClick={addQuoteToInput}>{t("common.addToChat")}</Button>
             </div>
           )}
         </div>
       );
     }
 
-    const KNOWLEDGE_DEBUG_STATES = [
-      { key: "init", label: "1. 初始态" },
-      { key: "parsing", label: "2. 解析中" },
-      { key: "chat", label: "3. 对话态" },
-      { key: "conflict", label: "4. 冲突处理" }
-    ];
-
-    const DEFAULT_BRAND_WEBSITE = { id: "default-website", type: "link", name: "workfxhub.com · 品牌官网" };
+    function getKnowledgeDebugStates(t) {
+      return [
+        { key: "init", label: t("knowledge.debug1") },
+        { key: "parsing", label: t("knowledge.debug2") },
+        { key: "chat", label: t("knowledge.debug3") },
+        { key: "conflict", label: t("knowledge.debug4") }
+      ];
+    }
 
     function KnowledgePage({ onSaveToBrand, onSaveToChannels }) {
+      const { t, locale } = useI18n();
+      const debugStates = useMemo(() => getKnowledgeDebugStates(t), [t]);
       const [state, setState] = useState("init");
-      const [uploadedItems, setUploadedItems] = useState([DEFAULT_BRAND_WEBSITE]);
+      const [uploadedItems, setUploadedItems] = useState([{ id: "default-website", type: "link", name: "workfxhub.com · 品牌官网" }]);
+      useEffect(() => {
+        setUploadedItems(p => p.map(it => it.id === "default-website" ? { ...it, name: t("knowledge.defaultSite") } : it));
+      }, [locale, t]);
       const [archive] = useState(SAMPLE_ARCHIVE);
 
       const handleInputStart = useCallback((text) => {
-        setUploadedItems(p => [{ id: "text-" + Date.now(), type: "text", name: "用户输入", preview: text.slice(0, 50) + (text.length > 50 ? "…" : "") }, ...p]);
+        setUploadedItems(p => [{ id: "text-" + Date.now(), type: "text", name: t("common.userInput"), preview: text.slice(0, 50) + (text.length > 50 ? "…" : "") }, ...p]);
         setState("parsing");
         setTimeout(() => setState("chat"), 5000);
-      }, []);
+      }, [t]);
 
       const handleFileUpload = useCallback((file) => {
         setUploadedItems(p => [{ id: "file-" + Date.now(), type: file.type.startsWith("image/") ? "image" : "file", name: file.name, size: (file.size / 1024 / 1024).toFixed(1) + "MB" }, ...p]);
@@ -1681,12 +1865,12 @@
       }, []);
 
       const handleTextAdd = useCallback((text) => {
-        setUploadedItems(p => [{ id: "text-" + Date.now(), type: "text", name: "用户输入", preview: text.slice(0, 50) + (text.length > 50 ? "…" : "") }, ...p]);
-      }, []);
+        setUploadedItems(p => [{ id: "text-" + Date.now(), type: "text", name: t("common.userInput"), preview: text.slice(0, 50) + (text.length > 50 ? "…" : "") }, ...p]);
+      }, [t]);
 
       const handleAddMore = useCallback((text) => {
-        setUploadedItems(p => [{ id: "text-" + Date.now(), type: "text", name: "用户输入", preview: text.slice(0, 50) + (text.length > 50 ? "…" : "") }, ...p]);
-      }, []);
+        setUploadedItems(p => [{ id: "text-" + Date.now(), type: "text", name: t("common.userInput"), preview: text.slice(0, 50) + (text.length > 50 ? "…" : "") }, ...p]);
+      }, [t]);
 
       const handleStartParse = useCallback(() => { setState("parsing"); setTimeout(() => setState("chat"), 5000); }, []);
       const handleConfirm = useCallback(() => setState("init"), []);
@@ -1699,8 +1883,8 @@
           {state === "conflict" && <KnowledgeChatState variant="conflict" items={uploadedItems} onFileUpload={handleFileUpload} onLinkAdd={handleLinkAdd} onTextAdd={handleTextAdd} onSend={() => {}} onConfirm={handleConfirm} onSaveToBrand={onSaveToBrand} onSaveToChannels={onSaveToChannels} />}
           <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-gray-100 px-4 py-3 md:left-64">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">品牌知识库 Debug:</span>
-              {KNOWLEDGE_DEBUG_STATES.map(({ key, label }) => (
+              <span className="text-xs font-medium text-gray-500">{t("knowledge.debugBar")}</span>
+              {debugStates.map(({ key, label }) => (
                 <button
                   key={key}
                   type="button"
@@ -1748,6 +1932,35 @@
         { id: "tt1", handle: "@未配置", status: "style_only", positioning: "短视频爆款号", size: "-", needBind: true }
       ]}
     ];
+    const CHANNELS_DATA_EN = [
+      { id: "linkedin", name: "LinkedIn", icon: "💼", accounts: [
+        { id: "li1", handle: "@Company_Page", status: "bound", positioning: "Credibility voice", size: "-", needBind: false }
+      ]},
+      { id: "shopify", name: "Shopify", icon: "🛒", accounts: [
+        { id: "sh1", handle: "@未配置", status: "style_only", positioning: "Conversion voice", size: "-", needBind: true }
+      ]},
+      { id: "wordpress", name: "WordPress", icon: "📝", accounts: [
+        { id: "wp1", handle: "@未配置", status: "style_only", positioning: "Long-form voice", size: "-", needBind: true }
+      ]},
+      { id: "reddit", name: "Reddit", icon: "🔴", accounts: [
+        { id: "rd1", handle: "@未配置", status: "style_only", positioning: "Community voice", size: "-", needBind: false }
+      ]},
+      { id: "x", name: "X (Twitter)", icon: "𝕏", accounts: [
+        { id: "x1", handle: "@未配置", status: "style_only", positioning: "Trend voice", size: "-", needBind: false }
+      ]},
+      { id: "instagram", name: "Instagram", icon: "📷", accounts: [
+        { id: "ig1", handle: "@Brand_Official", status: "style_only", positioning: "Visual voice", size: "-", needBind: false }
+      ]},
+      { id: "facebook", name: "Facebook", icon: "📘", accounts: [
+        { id: "fb1", handle: "@未配置", status: "style_only", positioning: "Broad reach", size: "-", needBind: false }
+      ]},
+      { id: "medium", name: "Medium", icon: "📄", accounts: [
+        { id: "md1", handle: "@未配置", status: "style_only", positioning: "Deep read", size: "-", needBind: false }
+      ]},
+      { id: "tiktok", name: "TikTok", icon: "🤳", accounts: [
+        { id: "tt1", handle: "@未配置", status: "style_only", positioning: "Short video", size: "-", needBind: true }
+      ]}
+    ];
 
     const ADD_ACCOUNT_PLATFORM_IDS = ["linkedin", "tiktok", "instagram", "shopify", "wordpress", "reddit", "x", "facebook", "medium"];
 
@@ -1772,7 +1985,37 @@
       wordpress: []
     };
 
+    function parseChannelVvText(text) {
+      if (text == null || !String(text).trim()) return { visual: "", verbal: "" };
+      let visualM = text.match(/画面要\[([^\]]*)\]/);
+      let verbalM = text.match(/说话要\[([^\]]*)\]/) || text.match(/口吻要\[([^\]]*)\]/);
+      if (visualM || verbalM) {
+        return {
+          visual: visualM?.[1] != null ? String(visualM[1]).trim() : "",
+          verbal: verbalM?.[1] != null ? String(verbalM[1]).trim() : ""
+        };
+      }
+      visualM = text.match(/Look:\s*\[([^\]]*)\]/i);
+      verbalM = text.match(/voice:\s*\[([^\]]*)\]/i);
+      if (visualM || verbalM) {
+        return {
+          visual: visualM?.[1] != null ? String(visualM[1]).trim() : "",
+          verbal: verbalM?.[1] != null ? String(verbalM[1]).trim() : ""
+        };
+      }
+      return { visual: "", verbal: "" };
+    }
+
+    function formatChannelVvDraft(vv, locale) {
+      if (!vv) return "";
+      const v = vv.visual ?? "";
+      const b = vv.verbal ?? "";
+      if (locale === "en") return `Look: [${v}], voice: [${b}]`;
+      return `画面要[${v}]，说话要[${b}]`;
+    }
+
     function BindChoicePopover({ isOpen, mode, platform, linkedAccounts, onShowPicker, onBindToAccount, onSelectNew, onBack, onClose }) {
+      const { t } = useI18n();
       if (!isOpen) return null;
       return (
         <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
@@ -1781,18 +2024,18 @@
           </div>
           {mode === "choice" && (
             <>
-              <p className="px-4 pt-6 pb-2 pr-10 text-sm font-medium text-black">选择绑定方式</p>
+              <p className="px-4 pt-6 pb-2 pr-10 text-sm font-medium text-black">{t("channels.bindChoice")}</p>
               <button type="button" onClick={onShowPicker} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50">
-                <span className="text-gray-400">○</span> 绑定已有账号
+                <span className="text-gray-400">○</span> {t("channels.bindExisting")}
               </button>
               <button type="button" onClick={onSelectNew} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50">
-                <span className="text-gray-400">○</span> 关联新账号
+                <span className="text-gray-400">○</span> {t("channels.bindNew")}
               </button>
             </>
           )}
           {mode === "picker" && (
             <>
-              <p className="px-4 pt-6 pb-2 pr-10 text-sm font-medium text-black">选择要绑定的账号</p>
+              <p className="px-4 pt-6 pb-2 pr-10 text-sm font-medium text-black">{t("channels.pickAccount")}</p>
               {linkedAccounts.map((acc) => (
                 <button key={acc.id} type="button" onClick={() => onBindToAccount(acc)} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50">
                   <span className="text-base">{platform?.icon}</span>
@@ -1800,7 +2043,7 @@
                 </button>
               ))}
               <button type="button" onClick={onBack} className="mt-1 flex w-full items-center gap-2 border-t border-gray-100 px-4 py-2 text-left text-xs text-gray-500 hover:bg-gray-50">
-                ← 返回
+                {t("channels.back")}
               </button>
             </>
           )}
@@ -1809,27 +2052,33 @@
     }
 
     function SaveVerifyModal({ isOpen, onClose, onBackToEdit, onConfirm, draft }) {
+      const { t, locale } = useI18n();
       if (!isOpen) return null;
-      const rules = draft ? [draft.visualVoice?.verbal?.split("、")[0] || "理性", draft.visualVoice?.verbal?.split("、")[1] || "克制", "深度拆解"].slice(0, 3) : ["理性", "克制", "深度拆解"];
+      const d1 = locale === "en" ? "Rational" : "理性";
+      const d2 = locale === "en" ? "Restrained" : "克制";
+      const d3 = locale === "en" ? "Deep dive" : "深度拆解";
+      const verbalParts = (draft?.visualVoice?.verbal || "").split(/[、,]/);
+      const rules = draft ? [verbalParts[0]?.trim() || d1, verbalParts[1]?.trim() || d2, d3].slice(0, 3) : [d1, d2, d3];
+      const rulesStr = locale === "en" ? rules.join(", ") : rules.join("、");
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-black">🔍 保存前最后确认：风格样板验证</h2>
-            <p className="mt-4 text-sm text-gray-600">AI 已根据您的新规则（{rules.join("、")}）为您生成了以下 Demo：</p>
+            <h2 className="text-lg font-bold text-black">{t("channels.saveVerifyTitle")}</h2>
+            <p className="mt-4 text-sm text-gray-600">{t("channels.saveVerifySub", { r: rulesStr })}</p>
             <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
               <div className="flex gap-4">
                 <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white text-2xl text-gray-400">🖼️</div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-black">标题：为什么 90% 的人读不懂品牌 DNA？</p>
-                  <p className="text-xs text-gray-400">(1:1 极简风格)</p>
-                  <p className="mt-2 line-clamp-2 text-sm text-gray-600">正文：在营销的语境里，认知差往往决定了...这不是一个关于技巧的问题，而是一个关于...</p>
+                  <p className="text-sm font-semibold text-black">{t("channels.demoTitle")}</p>
+                  <p className="text-xs text-gray-400">{t("channels.demoSub")}</p>
+                  <p className="mt-2 line-clamp-2 text-sm text-gray-600">{t("channels.demoBody")}</p>
                 </div>
               </div>
             </div>
-            <p className="mt-6 text-sm text-gray-600">这个风格符合您的预期吗？</p>
+            <p className="mt-6 text-sm text-gray-600">{t("channels.saveVerifyQ")}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <button type="button" onClick={onBackToEdit} className="rounded border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">⬅️ 返回继续修改</button>
-              <button type="button" onClick={onConfirm} className="rounded bg-black px-4 py-2 text-sm text-white hover:bg-gray-800">✅ 确认为最终资产</button>
+              <button type="button" onClick={onBackToEdit} className="rounded border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">{t("channels.backEdit")}</button>
+              <button type="button" onClick={onConfirm} className="rounded bg-black px-4 py-2 text-sm text-white hover:bg-gray-800">{t("channels.confirmAsset")}</button>
             </div>
           </div>
         </div>
@@ -1837,31 +2086,34 @@
     }
 
     function UnbindConfirmModal({ isOpen, onClose, onConfirm, accountHandle }) {
+      const { t } = useI18n();
       if (!isOpen) return null;
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-black">确定解绑？</h3>
-            <p className="mt-2 text-sm text-gray-600">解绑后账号「{accountHandle}」将不再关联本 project，您可随时重新绑定。</p>
+            <h3 className="text-base font-semibold text-black">{t("channels.unbindTitle")}</h3>
+            <p className="mt-2 text-sm text-gray-600">{t("channels.unbindDesc", { h: accountHandle })}</p>
             <div className="mt-6 flex gap-3">
-              <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">取消</button>
-              <button type="button" onClick={onConfirm} className="flex-1 rounded-lg bg-black py-2.5 text-sm font-medium text-white hover:bg-gray-800">解绑</button>
+              <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">{t("common.cancel")}</button>
+              <button type="button" onClick={onConfirm} className="flex-1 rounded-lg bg-black py-2.5 text-sm font-medium text-white hover:bg-gray-800">{t("channels.unbindBtn")}</button>
             </div>
           </div>
         </div>
       );
     }
 
-    function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, description, confirmLabel = "删除" }) {
+    function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, description, confirmLabel }) {
+      const { t } = useI18n();
       if (!isOpen) return null;
+      const confirmText = confirmLabel ?? t("channels.delModalConfirm");
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-black">{title}</h3>
             <p className="mt-2 text-sm text-gray-600">{description}</p>
             <div className="mt-6 flex gap-3">
-              <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">取消</button>
-              <button type="button" onClick={onConfirm} className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-700">{confirmLabel}</button>
+              <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">{t("common.cancel")}</button>
+              <button type="button" onClick={onConfirm} className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-700">{confirmText}</button>
             </div>
           </div>
         </div>
@@ -1869,13 +2121,15 @@
     }
 
     function BindModal({ isOpen, onClose, platformName, platformIcon }) {
+      const { t, locale } = useI18n();
       if (!isOpen) return null;
+      const name = platformName || t("channels.bindTargetFallback");
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <button type="button" onClick={onClose} className="absolute -top-1 -right-1 rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
-              <h2 className="text-center text-lg font-bold text-black">WorkfxHUB 使用 Pipedream 连接您的账号</h2>
+              <h2 className="text-center text-lg font-bold text-black">{t("channels.bindModalTitle")}</h2>
               <div className="mt-6 flex items-center justify-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-black text-sm font-mono text-white">{'{}'}</div>
                 <div className="h-px flex-1 border-t border-dashed border-gray-300" />
@@ -1889,22 +2143,26 @@
                 <div className="flex gap-3">
                   <span className="text-lg">🛡️</span>
                   <div>
-                    <p className="font-semibold text-black">Pipedream 是 Workday 旗下产品</p>
-                    <p className="mt-0.5 text-sm text-gray-500">全球数百万人信赖 Pipedream 保护数据安全。</p>
+                    <p className="font-semibold text-black">{t("channels.pd1")}</p>
+                    <p className="mt-0.5 text-sm text-gray-500">{t("channels.pd1b")}</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <span className="text-lg">⚡</span>
                   <div>
-                    <p className="font-semibold text-black">即时连接</p>
-                    <p className="mt-0.5 text-sm text-gray-500">Pipedream 可安全、快速地连接您的 {platformName || "目标"} 账号。</p>
+                    <p className="font-semibold text-black">{t("channels.pd2")}</p>
+                    <p className="mt-0.5 text-sm text-gray-500">{t("channels.pd2b", { name })}</p>
                   </div>
                 </div>
               </div>
               <p className="mt-6 text-center text-xs text-gray-500">
-                继续即表示您同意 Pipedream 的 <a href="https://pipedream.com/terms" target="_blank" rel="noopener noreferrer" className="underline">《服务条款》</a> 和 <a href="https://pipedream.com/privacy" target="_blank" rel="noopener noreferrer" className="underline">《隐私政策》</a>。
+                {t("channels.pdTerms")}
+                <a href="https://pipedream.com/terms" target="_blank" rel="noopener noreferrer" className="underline">{t("channels.terms")}</a>
+                {locale === "en" ? " and " : "和"}
+                <a href="https://pipedream.com/privacy" target="_blank" rel="noopener noreferrer" className="underline">{t("channels.privacy")}</a>
+                {locale === "en" ? "." : "。"}
               </p>
-              <button type="button" onClick={onClose} className="mt-6 w-full rounded-full bg-black py-3 text-sm font-medium text-white hover:bg-gray-800">继续</button>
+              <button type="button" onClick={onClose} className="mt-6 w-full rounded-full bg-black py-3 text-sm font-medium text-white hover:bg-gray-800">{t("channels.continue")}</button>
             </div>
           </div>
         </div>
@@ -1912,6 +2170,8 @@
     }
 
     function AddAccountModal({ isOpen, onClose, platforms, onConfirm }) {
+      const { locale, t } = useI18n();
+      const matrixById = locale === "en" ? CHANNELS_MATRIX_PROPOSAL_EN_BY_ID : CHANNELS_MATRIX_PROPOSAL_BY_ID;
       const [selectedId, setSelectedId] = useState(null);
       const [identity, setIdentity] = useState("");
       const [visualVoiceText, setVisualVoiceText] = useState("");
@@ -1932,18 +2192,18 @@
 
       useEffect(() => {
         if (!isOpen || !selectedId) return;
-        const matrix = CHANNELS_MATRIX_PROPOSAL_BY_ID[selectedId];
+        const matrix = matrixById[selectedId];
         const fb = ADD_ACCOUNT_FALLBACK_DRAFT;
         if (matrix) {
           setIdentity(matrix.identity);
-          setVisualVoiceText(`画面要[${matrix.visualVoice?.visual ?? ""}]；口吻要[${matrix.visualVoice?.verbal ?? ""}]`);
+          setVisualVoiceText(formatChannelVvDraft(matrix.visualVoice ?? { visual: "", verbal: "" }, locale));
           setMaterialReq(matrix.materialReq);
         } else {
           setIdentity(fb.identity);
-          setVisualVoiceText(`画面要[${fb.visualVoice.visual}]；口吻要[${fb.visualVoice.verbal}]`);
+          setVisualVoiceText(formatChannelVvDraft(fb.visualVoice, locale));
           setMaterialReq(fb.materialReq);
         }
-      }, [isOpen, selectedId]);
+      }, [isOpen, selectedId, locale]);
 
       const shuffleIdentity = () => {
         const i = (identityAltIdx + 1) % IDENTITY_ALTERNATES.length;
@@ -1951,7 +2211,7 @@
         setIdentity(IDENTITY_ALTERNATES[i]);
       };
       const shuffleVisual = () => {
-        setVisualVoiceText(p => p + (p.match(/✨/) ? "" : " ✨ 已微调语气"));
+        setVisualVoiceText(p => p + (p.match(/✨/) ? "" : t("channels.shuffleHint")));
       };
 
       if (!isOpen) return null;
@@ -1959,12 +2219,12 @@
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-5 py-4">
-              <h2 className="text-lg font-semibold text-black">✨ 新增发声账号</h2>
+              <h2 className="text-lg font-semibold text-black">{t("channels.addVoiceTitle")}</h2>
               <button type="button" onClick={onClose} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
             </div>
             <div className="space-y-6 px-5 py-5">
               <div>
-                <p className="text-sm font-medium text-gray-500">第一步：选择平台</p>
+                <p className="text-sm font-medium text-gray-500">{t("channels.step1")}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {pickerList.map((p) => (
                     <button
@@ -1981,43 +2241,43 @@
               </div>
               <hr className="border-gray-200" />
               <div className={!selectedId ? "pointer-events-none opacity-50" : ""}>
-                <p className="text-sm font-medium text-gray-500">第二步：确认账号性格 <span className="font-normal text-gray-400">(已基于 <strong className="text-gray-600">品牌基因</strong> 自动生成建议)</span></p>
-                {!selectedId && <p className="mt-2 text-xs text-amber-600">请先选择平台</p>}
+                <p className="text-sm font-medium text-gray-500">{t("channels.step2")}<span className="font-normal text-gray-400">{t("channels.step2b")}<strong className="text-gray-600">{t("channels.step2c")}</strong>{t("channels.step2d")}</span></p>
+                {!selectedId && <p className="mt-2 text-xs text-amber-600">{t("channels.pickPlFirst")}</p>}
                 <div className="mt-4 space-y-4">
                   <div>
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="text-sm font-semibold text-black">● 账号身份</span>
-                      <button type="button" onClick={shuffleIdentity} className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50">✨ 换个说法</button>
+                      <span className="text-sm font-semibold text-black">{t("channels.accIdentity")}</span>
+                      <button type="button" onClick={shuffleIdentity} className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50">{t("channels.rephrase")}</button>
                     </div>
-                    <textarea value={identity} onChange={e => setIdentity(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-black" />
+                    <textarea value={identity} onChange={e => setIdentity(e.target.value)} rows={3} placeholder={t("channels.phIdentity")} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-black" />
                   </div>
                   <div>
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="text-sm font-semibold text-black">● 画风口吻</span>
+                      <span className="text-sm font-semibold text-black">{t("channels.vvFull")}</span>
                       <button type="button" onClick={shuffleVisual} className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50">✨</button>
                     </div>
-                    <textarea value={visualVoiceText} onChange={e => setVisualVoiceText(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-black" />
+                    <textarea value={visualVoiceText} onChange={e => setVisualVoiceText(e.target.value)} rows={3} placeholder={t("channels.phVV")} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-black" />
                   </div>
                   <div>
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="text-sm font-semibold text-black">● 物料要求</span>
+                      <span className="text-sm font-semibold text-black">{t("channels.matFull")}</span>
                     </div>
-                    <textarea value={materialReq} onChange={e => setMaterialReq(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-black" />
+                    <textarea value={materialReq} onChange={e => setMaterialReq(e.target.value)} rows={3} placeholder={t("channels.phMat")} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-black" />
                   </div>
                 </div>
               </div>
               {previewOpen && (
                 <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-                  <p className="text-xs font-medium text-gray-500">风格样本预览</p>
-                  <p className="mt-2 line-clamp-3">基于当前设定，生成的一条示例文案将在此展示（演示）。</p>
+                  <p className="text-xs font-medium text-gray-500">{t("channels.stylePreview")}</p>
+                  <p className="mt-2 line-clamp-3">{t("channels.stylePreviewBody")}</p>
                 </div>
               )}
             </div>
             <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 bg-white px-5 py-4">
-              <button type="button" onClick={() => setPreviewOpen(true)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">预览风格样本</button>
+              <button type="button" onClick={() => setPreviewOpen(true)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">{t("channels.previewStyleBtn")}</button>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={onClose}>取消</Button>
-                <Button size="sm" onClick={() => selectedId && onConfirm({ platformId: selectedId, identity, visualVoiceText, materialReq })} disabled={!selectedId}>确认添加</Button>
+                <Button variant="secondary" size="sm" onClick={onClose}>{t("common.cancel")}</Button>
+                <Button size="sm" onClick={() => selectedId && onConfirm({ platformId: selectedId, identity, visualVoiceText, materialReq })} disabled={!selectedId}>{t("channels.confirmAdd")}</Button>
               </div>
             </div>
           </div>
@@ -2026,7 +2286,11 @@
     }
 
     function ChannelsPage({ syncedChannelMatrix, onSyncConsumed }) {
+      const { locale, t } = useI18n();
       const [platforms, setPlatforms] = useState(CHANNELS_DATA);
+      useEffect(() => {
+        setPlatforms(locale === "en" ? CHANNELS_DATA_EN : CHANNELS_DATA);
+      }, [locale]);
       const [addAccountOpen, setAddAccountOpen] = useState(false);
       const [collapsed, setCollapsed] = useState({});
       const [bindFlowState, setBindFlowState] = useState("idle"); // idle | choice | picker | pipedream
@@ -2047,8 +2311,9 @@
         }
       }, [syncedChannelMatrix, onSyncConsumed]);
 
+      const matrixById = locale === "en" ? CHANNELS_MATRIX_PROPOSAL_EN_BY_ID : CHANNELS_MATRIX_PROPOSAL_BY_ID;
       const startEdit = (platform, acc) => {
-        const matrix = CHANNELS_MATRIX_PROPOSAL_BY_ID[platform.id] || {};
+        const matrix = matrixById[platform.id] || {};
         setEditingAccountId(acc.id);
         setEditDraft({
           handle: acc.handle,
@@ -2182,21 +2447,15 @@
       const linkedAccounts = bindTarget ? (LINKED_ACCOUNTS_BY_PLATFORM[bindTarget.platform?.id] ?? []) : [];
       const showChoicePopover = (bindFlowState === "choice" || bindFlowState === "picker") && bindTarget;
 
-      const parseVisualVoiceFromText = (text) => {
-        const v = text.match(/画面要\[([^\]]*)\]/);
-        const verbal = text.match(/口吻要\[([^\]]*)\]/);
-        return { visual: (v && v[1]) ? v[1].trim() : "", verbal: (verbal && verbal[1]) ? verbal[1].trim() : "" };
-      };
-
       const handleAddAccountConfirm = ({ platformId, identity, visualVoiceText, materialReq }) => {
-        const matrix = CHANNELS_MATRIX_PROPOSAL_BY_ID[platformId];
-        const vv = parseVisualVoiceFromText(visualVoiceText);
+        const matrix = matrixById[platformId];
+        const vv = parseChannelVvText(visualVoiceText);
         const visualVoice = (vv.visual || vv.verbal) ? vv : (matrix?.visualVoice ?? { visual: "", verbal: "" });
         const newAcc = {
           id: "acc-" + Date.now(),
           handle: "@未配置",
           status: "style_only",
-          positioning: matrix?.role ?? "新账号",
+          positioning: matrix?.role ?? t("channels.newAccountDefault"),
           identity,
           visualVoice,
           materialReq,
@@ -2216,19 +2475,19 @@
             isOpen={!!deleteTarget}
             onClose={closeDeleteConfirm}
             onConfirm={handleDeleteConfirm}
-            title={deleteTarget?.type === "platform" ? "删除整个渠道？" : "删除该账号？"}
+            title={deleteTarget?.type === "platform" ? t("channels.delPlTitle") : t("channels.delAccTitle")}
             description={
               deleteTarget?.type === "platform"
-                ? `将移除「${deleteTarget.platform.icon} ${deleteTarget.platform.name}」及其下全部账号，此操作不可撤销。`
-                : `将永久移除账号「${deleteTarget?.account?.handle ?? ""}」，此操作不可撤销。`
+                ? t("channels.delPlDesc", { icon: deleteTarget.platform.icon, name: deleteTarget.platform.name })
+                : t("channels.delAccDesc", { h: deleteTarget?.account?.handle ?? "" })
             }
-            confirmLabel="删除"
+            confirmLabel={t("channels.delModalConfirm")}
           />
           <BindModal isOpen={bindFlowState === "pipedream"} onClose={closePipedreamModal} platformName={bindTarget?.platform?.name} platformIcon={bindTarget?.platform?.icon} />
           <div className="mx-auto max-w-4xl">
             <div className="mb-8 flex items-center justify-between">
-              <h1 className="text-xl font-bold text-black">您的营销矩阵 <span className="font-normal text-gray-500">(共 {platformCount} 个平台, {accountCount} 个账号)</span></h1>
-              <Button size="sm" onClick={() => setAddAccountOpen(true)}>+ 新增营销渠道</Button>
+              <h1 className="text-xl font-bold text-black">{t("channels.pageTitle")}<span className="font-normal text-gray-500">{t("channels.pageTitleSub", { p: platformCount, a: accountCount })}</span></h1>
+              <Button size="sm" onClick={() => setAddAccountOpen(true)}>{t("channels.addChannel")}</Button>
             </div>
             <div className="space-y-4">
               {platforms.map((platform) => (
@@ -2248,27 +2507,27 @@
                       onClick={() => openDeletePlatform(platform)}
                       className="shrink-0 rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
                     >
-                      🗑️ 删除渠道
+                      {t("channels.deletePl")}
                     </button>
                   </div>
                   {!collapsed[platform.id] && (
                     <div className="space-y-4 p-5 pt-0">
                       {platform.accounts.map((acc, accIdx) => {
-                        const matrix = CHANNELS_MATRIX_PROPOSAL_BY_ID[platform.id] || {};
+                        const matrix = matrixById[platform.id] || {};
                         const identity = acc.identity ?? matrix.identity;
                         const visualVoice = acc.visualVoice ?? matrix.visualVoice;
                         const materialReq = acc.materialReq ?? matrix.materialReq;
                         const isEditing = editingAccountId === acc.id;
                         const draft = isEditing ? editDraft : null;
                         const isBound = acc.status === "bound" && acc.handle && acc.handle !== "@未配置";
-                        const accountTitle = isBound ? acc.handle : `账号 ${accIdx + 1}`;
+                        const accountTitle = isBound ? acc.handle : t("channels.accountN", { n: accIdx + 1 });
                         return (
                           <div key={acc.id} className="w-full rounded-lg border border-gray-200 bg-white">
                             <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
                               <div className="flex min-w-0 items-center gap-2">
                                 {isEditing ? (
                                   <input type="text" value={draft?.handle ?? ""} onChange={e => setEditDraft(d => d ? { ...d, handle: e.target.value } : null)}
-                                    placeholder="编辑名字" className="min-w-0 max-w-md flex-1 rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-black" />
+                                    placeholder={t("channels.editNamePh")} className="min-w-0 max-w-md flex-1 rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-black" />
                                 ) : (
                                   <span className="truncate text-base font-semibold text-black" title={accountTitle}>{accountTitle}</span>
                                 )}
@@ -2276,15 +2535,15 @@
                               <div className="flex flex-wrap gap-1">
                                 {isEditing ? (
                                   <>
-                                    <button type="button" onClick={cancelEdit} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">取消</button>
-                                    <button type="button" onClick={openSaveVerify} className="rounded bg-black px-2 py-1 text-xs text-white hover:bg-gray-800">✨ 保存并验证</button>
+                                    <button type="button" onClick={cancelEdit} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">{t("common.cancel")}</button>
+                                    <button type="button" onClick={openSaveVerify} className="rounded bg-black px-2 py-1 text-xs text-white hover:bg-gray-800">{t("channels.saveVerify")}</button>
                                   </>
                                 ) : (
                                   <>
-                                    <button type="button" onClick={() => startEdit(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">⚙️ 编辑</button>
+                                    <button type="button" onClick={() => startEdit(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">{t("channels.edit")}</button>
                                     {acc.needBind && (
                                   <div className={`relative ${showChoicePopover && bindTarget?.account?.id === acc.id ? "z-50" : ""}`}>
-                                    <button type="button" onClick={() => handleBindClick(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">🔗 绑定</button>
+                                    <button type="button" onClick={() => handleBindClick(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">{t("channels.bind")}</button>
                                     {showChoicePopover && bindTarget?.account?.id === acc.id && (
                                       <BindChoicePopover
                                         isOpen
@@ -2302,11 +2561,11 @@
                                 )}
                                     {acc.status === "bound" && PLATFORMS_WITH_BIND.includes(platform.id) && (
                                       <>
-                                        <button type="button" onClick={() => handleBindClick(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">🔄 更换</button>
-                                        <button type="button" onClick={() => openUnbindConfirm(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-600">🔓 解绑</button>
+                                        <button type="button" onClick={() => handleBindClick(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">{t("channels.swap")}</button>
+                                        <button type="button" onClick={() => openUnbindConfirm(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-600">{t("channels.unbind")}</button>
                                       </>
                                     )}
-                                    <button type="button" onClick={() => openDeleteAccount(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-700">🗑️ 删除</button>
+                                    <button type="button" onClick={() => openDeleteAccount(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-700">{t("channels.delAcc")}</button>
                                   </>
                                 )}
                               </div>
@@ -2317,51 +2576,49 @@
                                 <>
                                   <div>
                                     <div className="mb-1 flex items-center gap-2">
-                                      <p className="text-xs font-semibold text-gray-500">账号身份</p>
-                                      <button type="button" className="rounded px-1.5 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-black">✨ 润色</button>
+                                      <p className="text-xs font-semibold text-gray-500">{t("channels.identity")}</p>
+                                      <button type="button" className="rounded px-1.5 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-black">{t("channels.polish")}</button>
                                     </div>
                                     <textarea value={draft?.identity ?? ""} onChange={e => setEditDraft(d => d ? { ...d, identity: e.target.value } : null)}
-                                      rows={3} className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" placeholder="扮演一位..." />
+                                      rows={3} className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" placeholder={t("channels.phIdentity")} />
                                   </div>
                                   <div>
                                     <div className="mb-1 flex items-center gap-2">
-                                      <p className="text-xs font-semibold text-gray-500">画风口吻</p>
-                                      <button type="button" className="rounded px-1.5 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-black">✨ 润色</button>
+                                      <p className="text-xs font-semibold text-gray-500">{t("channels.vv")}</p>
+                                      <button type="button" className="rounded px-1.5 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-black">{t("channels.polish")}</button>
                                     </div>
-                                    <textarea value={draft?.visualVoice ? `画面要[${draft.visualVoice.visual ?? ""}]，说话要[${draft.visualVoice.verbal ?? ""}]` : ""} onChange={e => {
-                                      const v = e.target.value;
-                                      const visualM = v.match(/画面要\[([^\]]*)\]/);
-                                      const verbalM = v.match(/说话要\[([^\]]*)\]/);
-                                      setEditDraft(d => d ? { ...d, visualVoice: { visual: visualM?.[1] ?? "", verbal: verbalM?.[1] ?? "" } } : null);
+                                    <textarea value={draft?.visualVoice ? formatChannelVvDraft(draft.visualVoice, locale) : ""} onChange={e => {
+                                      const parsed = parseChannelVvText(e.target.value);
+                                      setEditDraft(d => d ? { ...d, visualVoice: { visual: parsed.visual, verbal: parsed.verbal } } : null);
                                     }}
-                                      rows={3} placeholder="画面要[...]，说话要[...]" className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
+                                      rows={3} placeholder={t("channels.phVV")} className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
                                   </div>
                                   <div>
                                     <div className="mb-1 flex items-center gap-2">
-                                      <p className="text-xs font-semibold text-gray-500">物料要求</p>
-                                      <button type="button" className="rounded px-1.5 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-black">✨ 润色</button>
+                                      <p className="text-xs font-semibold text-gray-500">{t("channels.matReq")}</p>
+                                      <button type="button" className="rounded px-1.5 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-black">{t("channels.polish")}</button>
                                     </div>
                                     <textarea value={draft?.materialReq ?? ""} onChange={e => setEditDraft(d => d ? { ...d, materialReq: e.target.value } : null)}
-                                      rows={3} className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" placeholder="主打..." />
+                                      rows={3} className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" placeholder={t("channels.phMat")} />
                                   </div>
                                 </>
                               ) : (
                                 <>
                               {identity && (
                                 <div>
-                                  <p className="mb-1 text-xs font-semibold text-gray-500">账号身份</p>
+                                  <p className="mb-1 text-xs font-semibold text-gray-500">{t("channels.identity")}</p>
                                   <p className="text-sm text-gray-700">{identity}</p>
                                 </div>
                               )}
                               {visualVoice && (
                                 <div>
-                                  <p className="mb-1 text-xs font-semibold text-gray-500">画风口吻</p>
-                                  <p className="text-sm text-gray-700">画面要[{visualVoice.visual}]，说话要[{visualVoice.verbal}]</p>
+                                  <p className="mb-1 text-xs font-semibold text-gray-500">{t("channels.vv")}</p>
+                                  <p className="text-sm text-gray-700">{t("channels.vvLine", { v: visualVoice.visual ?? "", b: visualVoice.verbal ?? "" })}</p>
                                 </div>
                               )}
                               {materialReq && (
                                 <div>
-                                  <p className="mb-1 text-xs font-semibold text-gray-500">物料要求</p>
+                                  <p className="mb-1 text-xs font-semibold text-gray-500">{t("channels.matReq")}</p>
                                   <p className="text-sm text-gray-700">{materialReq}</p>
                                 </div>
                               )}
@@ -2372,20 +2629,20 @@
                             <div className="border-t border-gray-100 px-5 py-3">
                               {expandedSampleId === acc.id ? (
                                 <>
-                                  <button type="button" onClick={() => setExpandedSampleId(null)} className="mb-4 text-xs text-gray-500 hover:text-black">🔼 收起风格样本</button>
+                                  <button type="button" onClick={() => setExpandedSampleId(null)} className="mb-4 text-xs text-gray-500 hover:text-black">{t("channels.collapseSample")}</button>
                                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                                     <div className="flex gap-4">
                                       <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white text-2xl text-gray-400">🖼️</div>
                                       <div className="min-w-0 flex-1">
-                                        <p className="text-xs font-semibold text-gray-500">样板标题：为什么我们坚持使用 100% 可回收包装？</p>
-                                        <p className="text-xs text-gray-400">(基于 1:1 图文)</p>
-                                        <p className="mt-2 line-clamp-2 text-sm text-gray-600">在 Workflex 的逻辑里，环保从来不是营销的口号。我们认为，真正的长期主义应该体现在每一个看不见的细节里。哪怕这会增加生产成本，但...</p>
+                                        <p className="text-xs font-semibold text-gray-500">{t("channels.sampleTitle")}</p>
+                                        <p className="text-xs text-gray-400">{t("channels.sampleSub")}</p>
+                                        <p className="mt-2 line-clamp-2 text-sm text-gray-600">{t("channels.sampleBody")}</p>
                                       </div>
                                     </div>
                                   </div>
                                 </>
                               ) : (
-                                <button type="button" onClick={() => setExpandedSampleId(acc.id)} className="text-xs text-gray-500 hover:text-black">✨ 查看该账号的风格样本 (Sample)</button>
+                                <button type="button" onClick={() => setExpandedSampleId(acc.id)} className="text-xs text-gray-500 hover:text-black">{t("channels.expandSample")}</button>
                               )}
                             </div>
                             )}
@@ -2404,6 +2661,7 @@
 
     // ============ App ============
     function BrandBrainPage({ archive, onArchiveSave }) {
+      const { locale } = useI18n();
       const [state, setState] = useState("saved_preview");
       const [uploadedItems, setUploadedItems] = useState([]);
 
@@ -2427,16 +2685,18 @@
 
       const getEditFieldsFromArchive = useCallback((arch) => {
         const byId = (id) => arch.sections.find(s => s.id === id);
+        const stripIdentity = (s) => (s || "").replace(/^品牌定位[：:]?\s*/, "").replace(/^Positioning[：:]?\s*/i, "");
         return {
-          core: (byId("identity")?.content?.[0] || "").replace(/^品牌定位[：:]?\s*/, "") || "中小企业的 AI 分发操作系统，解决流量焦虑。",
-          audience: (byId("audience")?.content?.join("；") || "").replace(/^核心人群[：:]?\s*/, "") || "希望通过 AI 实现降本增效的个体主理人。",
-          persona: (byId("tone")?.content?.[0] || "").replace(/^沟通语气[：:]?\s*/, "") || "一位专业、有温度的职场前辈，金句频出。",
-          guardrails: (byId("guardrails")?.content?.join("；") || "") || "避免使用高深的技术术语，多用直白的类比。"
+          core: stripIdentity(byId("identity")?.content?.[0]) || (locale === "en" ? "An AI distribution OS for SMBs that eases traffic anxiety." : "中小企业的 AI 分发操作系统，解决流量焦虑。"),
+          audience: (byId("audience")?.content?.join("；") || "").replace(/^核心人群[：:]?\s*/, "").replace(/^Core segment[：:]?\s*/i, "") || (locale === "en" ? "Solo founders who want to cut costs with AI." : "希望通过 AI 实现降本增效的个体主理人。"),
+          persona: (byId("tone")?.content?.[0] || "").replace(/^沟通语气[：:]?\s*/, "").replace(/^Tone[：:]?\s*/i, "") || (locale === "en" ? "A professional, warm mentor with punchy lines." : "一位专业、有温度的职场前辈，金句频出。"),
+          guardrails: (byId("guardrails")?.content?.join("；") || "") || (locale === "en" ? "Avoid jargon; use plain analogies." : "避免使用高深的技术术语，多用直白的类比。")
         };
-      }, []);
+      }, [locale]);
 
       const handleSaveEdit = useCallback((fields) => {
-        const updater = { identity: `品牌定位：${fields.core}`, audience: fields.audience, tone: fields.persona, guardrails: fields.guardrails };
+        const identityLine = locale === "en" ? `Positioning: ${fields.core}` : `品牌定位：${fields.core}`;
+        const updater = { identity: identityLine, audience: fields.audience, tone: fields.persona, guardrails: fields.guardrails };
         onArchiveSave({
           ...archive,
           sections: archive.sections.map(s => {
@@ -2448,7 +2708,7 @@
           })
         });
         setState("saved_preview");
-      }, [archive, onArchiveSave]);
+      }, [archive, onArchiveSave, locale]);
 
       const handleCancelEdit = useCallback(() => setState("saved_preview"), []);
 
@@ -2476,30 +2736,39 @@
     }
 
     function App() {
+      const { locale, t } = useI18n();
       const [activeTab, setActiveTab] = useState("knowledge");
       const [saveFlyTrigger, setSaveFlyTrigger] = useState(0);
       const [archive, setArchive] = useState(SAMPLE_ARCHIVE);
       const [syncedChannelMatrix, setSyncedChannelMatrix] = useState(null);
+      useEffect(() => {
+        setArchive(locale === "en" ? SAMPLE_ARCHIVE_EN : SAMPLE_ARCHIVE);
+      }, [locale]);
+      useEffect(() => {
+        document.title = t("meta.title");
+        document.documentElement.lang = locale === "en" ? "en" : "zh-CN";
+      }, [locale, t]);
       const mergeMatrixIntoArchive = useCallback(() => {
-        const matrixSection = { id: "channel_matrix", title: "营销账号矩阵", content: [], matrixData: CHANNELS_MATRIX_PROPOSAL.map(p => ({ ...p, visualVoice: { ...p.visualVoice } })), sources: [] };
+        const matrix = getChannelMatrixProposal(locale).map(p => ({ ...p, visualVoice: { ...p.visualVoice } }));
+        const matrixSection = { id: "channel_matrix", title: t("archive.matrixTitle"), content: [], matrixData: matrix, sources: [] };
         setArchive(prev => {
           const hasMatrix = prev.sections.some(s => s.id === "channel_matrix");
           const newSections = hasMatrix
-            ? prev.sections.map(s => s.id === "channel_matrix" ? { ...s, matrixData: CHANNELS_MATRIX_PROPOSAL.map(p => ({ ...p, visualVoice: { ...p.visualVoice } })) } : s)
+            ? prev.sections.map(s => s.id === "channel_matrix" ? { ...s, matrixData: matrix } : s)
             : [...prev.sections, matrixSection];
           return { ...prev, sections: newSections, updatedAt: new Date().toISOString().slice(0, 10) };
         });
-      }, []);
+      }, [locale, t]);
       const handleSaveToBrand = useCallback(() => {
         mergeMatrixIntoArchive();
-        setSaveFlyTrigger(t => t + 1);
+        setSaveFlyTrigger(x => x + 1);
       }, [mergeMatrixIntoArchive]);
       const handleSaveToChannels = useCallback(() => {
-        const matrix = CHANNELS_MATRIX_PROPOSAL.map(p => ({ ...p, visualVoice: { ...p.visualVoice } }));
+        const matrix = getChannelMatrixProposal(locale).map(p => ({ ...p, visualVoice: { ...p.visualVoice } }));
         mergeMatrixIntoArchive();
         setSyncedChannelMatrix(matrix);
         setActiveTab("channels");
-      }, [mergeMatrixIntoArchive]);
+      }, [mergeMatrixIntoArchive, locale]);
       return (
         <div className="flex min-h-screen w-full flex-row">
           <StarFlyEffect trigger={saveFlyTrigger} />
@@ -2516,7 +2785,7 @@
     }
 
     const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    root.render(<I18nProvider><App /></I18nProvider>);
   </script>
 </body>
 </html>
