@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WorkfxHUB - 品牌大脑</title>
-  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -47,6 +48,10 @@
       50% { opacity: 1; }
     }
     .regenerate-pulse { animation: regeneratePulse 1.5s ease-in-out infinite; }
+    .preview-scroll::-webkit-scrollbar { width: 8px; }
+    .preview-scroll::-webkit-scrollbar-track { background: #f5f5f5; border-radius: 4px; }
+    .preview-scroll::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 4px; }
+    .preview-scroll::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
   </style>
 </head>
 <body class="min-h-screen bg-white text-black">
@@ -54,16 +59,54 @@
   <script type="text/babel">
     const { useState, useCallback, useRef, useEffect } = React;
 
+    // 渠道矩阵涉及平台：LinkedIn, Shopify, WordPress, Reddit, X, Instagram, Facebook, Medium（提前定义以供 SAMPLE_ARCHIVE 引用）
+    const CHANNELS_MATRIX_PROPOSAL = [
+      { id: "linkedin", name: "LinkedIn", role: "职场背书号", icon: "💼",
+        identity: "扮演一位资深职场领路人，去跟那些求知欲强的精英聊天。",
+        visualVoice: { visual: "极简、冷色调", verbal: "理性、克制，禁用多表情" },
+        materialReq: "主打 1:1 图文，文案建议 300 字以上深度拆解。" },
+      { id: "shopify", name: "Shopify", role: "电商转化号", icon: "🛒",
+        identity: "扮演一位懂转化的电商操盘手，去帮那些急于出单的独立站卖家支招。",
+        visualVoice: { visual: "产品聚焦、高质感", verbal: "直接、结果导向，强调 ROI" },
+        materialReq: "主打产品图+卖点文案，强调限时优惠和行动 CTA。" },
+      { id: "wordpress", name: "WordPress", role: "内容深度号", icon: "📝",
+        identity: "扮演一位 SEO 与内容专家，去吸引那些关注长期流量的站长。",
+        visualVoice: { visual: "结构化、易扫读", verbal: "专业、有据可依" },
+        materialReq: "主打长文与教程，建议 800+ 字，配合 H2/H3 结构。" },
+      { id: "reddit", name: "Reddit", role: "社区真实号", icon: "🔴",
+        identity: "扮演一位真实用户，去跟 subreddit 里的圈内人讨论，而非硬广。",
+        visualVoice: { visual: "原生、无过度设计", verbal: "大白话、接地气、有观点" },
+        materialReq: "以帖子和回复为主，避免硬推销，强调真实体验分享。" },
+      { id: "x", name: "X (Twitter)", role: "热点引爆号", icon: "𝕏",
+        identity: "扮演一位敏锐的行业观察者，去抓住即时热点与话题参与讨论。",
+        visualVoice: { visual: "极简、信息密度高", verbal: "短平快、有梗、易转发" },
+        materialReq: "280 字内，标题前置抓人，善用 hashtag 和引用。" },
+      { id: "instagram", name: "Instagram", role: "视觉种草号", icon: "📷",
+        identity: "扮演一位高审美的生活家，去吸引向往美好生活的年轻人。",
+        visualVoice: { visual: "明亮、有留白", verbal: "轻盈、感性，多用 Emoji" },
+        materialReq: "4:5 首选尺寸，强调首图的视觉张力。" },
+      { id: "facebook", name: "Facebook", role: "广覆盖号", icon: "📘",
+        identity: "扮演一位可信赖的伙伴，去触达更广泛年龄层与地区用户。",
+        visualVoice: { visual: "清晰、易读", verbal: "亲和、易懂、多本地化" },
+        materialReq: "图文结合，可配合短视频，适合信息流投放。" },
+      { id: "medium", name: "Medium", role: "深度阅读号", icon: "📄",
+        identity: "扮演一位有见地的写作者，去吸引追求深度阅读的知识型用户。",
+        visualVoice: { visual: "干净、专注内容", verbal: "有洞察、有故事、有引用" },
+        materialReq: "主打长文，1500+ 字，配合小标题与引用块。" }
+    ];
+    const CHANNELS_MATRIX_PROPOSAL_BY_ID = Object.fromEntries(CHANNELS_MATRIX_PROPOSAL.map(p => [p.id, p]));
+
     // ============ Types & Data ============
     const SAMPLE_ARCHIVE = {
       id: "1", name: "自然之美", updatedAt: "2026-03-11",
       sections: [
-        { id: "identity", title: "1. 品牌基础身份与故事", content: ["品牌定位：纯植物提取护肤", "Slogan：科技还原自然之美", "核心卖点：24小时持久保湿、0致敏添加"], sources: [{ type: "file", name: "品牌手册.pdf" }, { type: "text", name: "用户粘贴（品牌介绍）" }] },
-        { id: "audience", title: "2. 目标人群与痛点", content: ["核心人群：25-35岁一二线城市新锐白领", "核心痛点：长期面对电脑导致肌肤暗沉、工作压力大追求松弛感"], sources: [{ type: "file", name: "品牌手册.pdf" }, { type: "image", name: "小红书参考1.jpg" }] },
-        { id: "tone", title: "3. 文本语感与调性", content: ["沟通语气：专业严谨、温柔治愈、不爹味说教"], sources: [{ type: "link", name: "官网 about 页" }] },
-        { id: "visual", title: "4. 视觉与审美资产", content: ["品牌主色调：#00FF00 (自然绿)、#FFFFFF (极简白)", "视觉风格：极简留白、日系清新、高光泽感"], sources: [{ type: "image", name: "小红书参考1.jpg" }] },
-        { id: "guardrails", title: "5. 护栏与排他禁忌", content: ["禁用词汇：平替、廉价、化工", "竞品避让：品牌X、品牌Y"], sources: [{ type: "file", name: "品牌手册.pdf" }] },
-        { id: "calendar", title: "6. 营销日历规划", content: ["核心节点：3.8女神节、9月秋季抗敏周、双11大促"], sources: [] }
+        { id: "identity", title: "品牌定位", content: ["品牌定位：纯植物提取护肤", "Slogan：科技还原自然之美", "核心卖点：24小时持久保湿、0致敏添加"], sources: [{ type: "file", name: "品牌手册.pdf" }, { type: "text", name: "用户粘贴（品牌介绍）" }] },
+        { id: "audience", title: "核心受众", content: ["核心人群：25-35岁一二线城市新锐白领", "核心痛点：长期面对电脑导致肌肤暗沉、工作压力大追求松弛感"], sources: [{ type: "file", name: "品牌手册.pdf" }, { type: "image", name: "小红书参考1.jpg" }] },
+        { id: "tone", title: "品牌风格", content: ["沟通语气：专业严谨、温柔治愈、不爹味说教"], sources: [{ type: "link", name: "官网 about 页" }] },
+        { id: "visual", title: "物料风格", content: ["品牌主色调：#00FF00 (自然绿)、#FFFFFF (极简白)", "视觉风格：极简留白、日系清新、高光泽感"], sources: [{ type: "image", name: "小红书参考1.jpg" }] },
+        { id: "guardrails", title: "品牌红线与准则", content: ["禁用词汇：平替、廉价、化工", "竞品避让：品牌X、品牌Y"], sources: [{ type: "file", name: "品牌手册.pdf" }] },
+        { id: "calendar", title: "营销节点", content: ["核心节点：3.8女神节、9月秋季抗敏周、双11大促"], sources: [] },
+        { id: "channel_matrix", title: "营销账号矩阵", content: [], matrixData: CHANNELS_MATRIX_PROPOSAL.map(p => ({ ...p })), sources: [] }
       ]
     };
 
@@ -508,6 +551,7 @@
       const [editingSectionId, setEditingSectionId] = useState(null);
       const [agentPanelOpen, setAgentPanelOpen] = useState(false);
       const [editValue, setEditValue] = useState("");
+      const [editMatrixData, setEditMatrixData] = useState(null);
       const [sectionMaterials, setSectionMaterials] = useState([]);
       const [addSourceOpen, setAddSourceOpen] = useState(false);
       const [aiRefining, setAiRefining] = useState(false);
@@ -518,6 +562,7 @@
       const [regeneratedSectionIds, setRegeneratedSectionIds] = useState(new Set());
       const popoverRef = useRef(null);
       const editingSection = archive.sections.find(s => s.id === editingSectionId);
+      const isEditingMatrix = editingSection?.matrixData != null;
 
       useEffect(() => {
         const handleClickOutside = (e) => {
@@ -528,7 +573,13 @@
       }, [popoverSectionId]);
 
       const handleEnterEdit = (section) => {
-        setEditValue(section.content.join("\n"));
+        if (section.matrixData) {
+          setEditMatrixData(section.matrixData.map(p => ({ ...p, visualVoice: { ...p.visualVoice } })));
+          setEditValue("");
+        } else {
+          setEditValue(section.content.join("\n"));
+          setEditMatrixData(null);
+        }
         setEditingSectionId(section.id);
         setSectionMaterials([]);
         setAgentPanelOpen(true);
@@ -537,33 +588,48 @@
         setAgentPanelOpen(false);
         setEditingSectionId(null);
         setEditValue("");
+        setEditMatrixData(null);
         setSectionMaterials([]);
         setAddSourceOpen(false);
       };
       const handleSave = () => {
         if (!editingSectionId) return;
-        const newContent = editValue
-          .split(/\n/)
-          .map(l => l.trim())
-          .filter(Boolean);
         const sourcesFromMaterials = sectionMaterials.map(m => ({ type: m.type, name: m.preview || m.name }));
-        const newSections = archive.sections.map(s =>
-          s.id === editingSectionId
-            ? { ...s, content: newContent, sources: sourcesFromMaterials.length ? sourcesFromMaterials : (s.sources || []) }
-            : s
-        );
+        const newSections = archive.sections.map(s => {
+          if (s.id !== editingSectionId) return s;
+          if (editMatrixData != null) {
+            return { ...s, matrixData: editMatrixData, sources: sourcesFromMaterials.length ? sourcesFromMaterials : (s.sources || []) };
+          }
+          const newContent = editValue.split(/\n/).map(l => l.trim()).filter(Boolean);
+          return { ...s, content: newContent, sources: sourcesFromMaterials.length ? sourcesFromMaterials : (s.sources || []) };
+        });
         onArchiveSave?.({ ...archive, sections: newSections, updatedAt: new Date().toISOString().slice(0, 10) });
         setEditingSectionId(null);
         setEditValue("");
+        setEditMatrixData(null);
         setSectionMaterials([]);
         setAgentPanelOpen(false);
       };
       const handleCancel = () => {
         setEditingSectionId(null);
         setEditValue("");
+        setEditMatrixData(null);
         setSectionMaterials([]);
         setAddSourceOpen(false);
         setAgentPanelOpen(false);
+      };
+      const updateMatrixItem = (idx, field, value) => {
+        setEditMatrixData(prev => {
+          if (!prev) return prev;
+          const next = [...prev];
+          const item = { ...next[idx] };
+          if (field === "identity") item.identity = value;
+          else if (field === "materialReq") item.materialReq = value;
+          else if (field === "visual") item.visualVoice = { ...item.visualVoice, visual: value };
+          else if (field === "verbal") item.visualVoice = { ...item.visualVoice, verbal: value };
+          next[idx] = item;
+          return next;
+        });
       };
 
       const handleAddFile = (file) => {
@@ -656,7 +722,7 @@
           />
           <div className={`mx-auto ${agentPanelOpen ? "max-w-4xl" : "max-w-6xl"}`}>
             <div className="space-y-10 border-t border-gray-200 pt-8">
-              {archive.sections.map((section) => {
+              {archive.sections.filter(s => s.id !== "channel_matrix").map((section) => {
                 const isEditing = editingSectionId === section.id;
                 return (
                   <section key={section.id} className="relative rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -674,10 +740,10 @@
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setPopoverSectionId(p => p === section.id ? null : section.id); }}
-                                className={`rounded px-2 py-1 text-xs transition-colors ${popoverSectionId === section.id ? "bg-gray-200 text-black" : "text-gray-500 hover:bg-gray-100 hover:text-black"}`}
+                                className={`border-0 bg-transparent p-0 align-super text-[10px] font-medium leading-none tabular-nums tracking-tight transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300/60 ${popoverSectionId === section.id ? "text-gray-700 underline decoration-gray-400/80 underline-offset-2" : "text-gray-400 hover:text-gray-600"}`}
                                 title="查看引用来源"
                               >
-                                ⓘ 引用了 {section.sources.length} 项
+                                [{section.sources.length}]
                               </button>
                               {popoverSectionId === section.id && (
                                 <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] max-w-[320px] rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
@@ -715,12 +781,50 @@
                     </div>
                     {isEditing ? (
                       <div className="min-w-0 flex-1">
-                        <textarea
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="min-h-[200px] w-full rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-700 outline-none focus:border-black"
-                          placeholder={`编辑 ${section.title}...`}
-                        />
+                        {isEditingMatrix && editMatrixData ? (
+                          <div className="space-y-4">
+                            <p className="text-sm text-gray-500">基于您的品牌资料，建议通过以下「性格分身」进行全网发声：</p>
+                            {editMatrixData.map((p, idx) => (
+                              <div key={p.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <span className="text-xl">{p.icon}</span>
+                                  <h4 className="text-sm font-semibold text-black">{p.name} ({p.role})</h4>
+                                </div>
+                                <div className="space-y-2">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">账号身份</label>
+                                    <input type="text" value={p.identity} onChange={e => updateMatrixItem(idx, "identity", e.target.value)}
+                                      className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-500 mb-1">画面</label>
+                                      <input type="text" value={p.visualVoice?.visual ?? ""} onChange={e => updateMatrixItem(idx, "visual", e.target.value)}
+                                        className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" placeholder="极简、冷色调" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-500 mb-1">说话</label>
+                                      <input type="text" value={p.visualVoice?.verbal ?? ""} onChange={e => updateMatrixItem(idx, "verbal", e.target.value)}
+                                        className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" placeholder="理性、克制" />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">物料要求</label>
+                                    <input type="text" value={p.materialReq} onChange={e => updateMatrixItem(idx, "materialReq", e.target.value)}
+                                      className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-black" />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <textarea
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="min-h-[200px] w-full rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-700 outline-none focus:border-black"
+                            placeholder={`编辑 ${section.title}...`}
+                          />
+                        )}
                       </div>
                     ) : (
                       <>
@@ -737,20 +841,41 @@
                         {regeneratedSectionIds.has(section.id) && (
                           <div className="mb-3 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">✓ 已基于剩余资料重新生成</div>
                         )}
-                        <ul className="space-y-2.5">
-                          {section.content.map((item, i) => (
-                            <li key={i} className="flex gap-2 text-sm text-gray-700 leading-relaxed">
-                              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gray-400" /><span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        {section.matrixData ? (
+                          <div>
+                            <p className="mb-4 text-sm text-gray-600">基于您的品牌资料，建议通过以下「性格分身」进行全网发声：</p>
+                            <div className="space-y-4">
+                              {section.matrixData.map((p) => (
+                                <div key={p.id} className="select-text cursor-text rounded-lg border border-gray-200 bg-white p-4 hover:bg-gray-50">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xl">{p.icon}</span>
+                                    <h3 className="text-sm font-semibold text-black">{p.name} ({p.role})</h3>
+                                  </div>
+                                  <hr className="my-3 border-gray-100" />
+                                  <ul className="space-y-2 text-sm text-gray-700">
+                                    <li><strong>账号身份：</strong>{p.identity}</li>
+                                    <li><strong>画风口吻：</strong>{`画面要[${p.visualVoice?.visual ?? ""}]，说话要[${p.visualVoice?.verbal ?? ""}]`}</li>
+                                    <li><strong>物料要求：</strong>{p.materialReq}</li>
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <ul className="space-y-2.5">
+                            {section.content.map((item, i) => (
+                              <li key={i} className="flex gap-2 text-sm text-gray-700 leading-relaxed">
+                                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gray-400" /><span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </>
                     )}
                   </section>
                 );
               })}
             </div>
-            <p className="mt-12 text-center text-sm text-gray-400">⬇️ 向下滚动查看完整文档</p>
           </div>
           </div>
           {agentPanelOpen && (
@@ -822,9 +947,9 @@
           <div className="flex-1 p-4 space-y-1">
             <div className="text-sm font-semibold text-black">WorkfxHUB</div>
             {[
-              { id: "knowledge", label: "品牌知识库" },
-              { id: "brand", label: "品牌大脑" },
-              { id: "channels", label: "渠道账号" }
+              { id: "knowledge", label: "品牌资产" },
+              { id: "brand", label: "品牌基因" },
+              { id: "channels", label: "营销矩阵" }
             ].map((tab) => (
               <div key={tab.id} className="relative overflow-visible">
                 <button
@@ -859,26 +984,143 @@
       );
     }
 
-    function KnowledgeInitState({ items, onInputStart, onFileUpload, onLinkAdd, onTextAdd }) {
-      const [inputValue, setInputValue] = useState("");
-      const [examplePreviewOpen, setExamplePreviewOpen] = useState(false);
-      const [modalOpen, setModalOpen] = useState(false);
-      const resolvedItems = items.map(it => ({ ...it, icon: TYPE_ICONS[it.type] || "📄" }));
-      const renderSourcePanel = () => (
-        <div className="flex w-56 shrink-0 flex-col border-r border-gray-200 bg-gray-50 p-4">
-          {examplePreviewOpen && (
+    // —— 品牌档案预览动效（原 demo.html 合并至此）——
+    const Sparkles = ({ className }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+        <path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" />
+      </svg>
+    );
+    const blueprintStructure = [
+      { title: "品牌定位", items: [{ subtitle: "品牌定位", width: "w-3/4" }, { subtitle: "Slogan", width: "w-1/2" }, { subtitle: "核心卖点", width: "w-full" }] },
+      { title: "核心受众", items: [{ subtitle: "核心人群", width: "w-2/3" }, { subtitle: "核心痛点", width: "w-full" }, { subtitle: "情感诉求", width: "w-4/5" }] },
+      { title: "品牌风格", items: [{ subtitle: "沟通语气", width: "w-3/4" }, { subtitle: "视觉调性", width: "w-1/2" }] },
+      { title: "营销节点与矩阵", items: [{ subtitle: "核心节点", width: "w-full" }, { subtitle: "社媒矩阵", width: "w-5/6" }] }
+    ];
+
+    function BrandBlueprintPreviewModal({ isOpen, onClose }) {
+      const { motion } = window.Motion;
+
+      const handleClose = () => {
+        onClose();
+      };
+
+      const BlueprintContent = () => (
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.3 } } }}
+          className="relative space-y-10 bg-white p-8 md:p-12"
+        >
+          {blueprintStructure.map((section, idx) => (
+            <motion.div
+              key={idx}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+              }}
+              className="relative"
+            >
+              <h4 className="mb-5 flex items-center gap-2 text-lg font-bold text-gray-900">
+                <span className="h-4 w-1 rounded-full bg-blue-500" />
+                {section.title}
+              </h4>
+              <div className="space-y-4 pl-3">
+                {section.items.map((item, i) => (
+                  <motion.div
+                    key={i}
+                    variants={{
+                      hidden: { opacity: 0, x: -10 },
+                      visible: { opacity: 1, x: 0 }
+                    }}
+                    className="flex items-start gap-3 text-[15px]"
+                  >
+                    <span className="whitespace-nowrap pt-0.5 font-medium text-gray-600">· {item.subtitle}：</span>
+                    <div className={`relative h-6 flex-1 overflow-hidden rounded-md bg-gray-100 ${item.width}`}>
+                      <motion.div
+                        className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+                        animate={{ x: ["-100%", "200%"] }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: "linear", delay: i * 0.2 }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      );
+
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4" onClick={handleClose}>
+          <div
+            className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-gray-100 bg-[#F8F9FA] shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+            onClick={e => e.stopPropagation()}
+          >
             <button
               type="button"
-              onClick={() => setModalOpen(true)}
-              className="mb-4 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-black hover:bg-gray-50 hover:text-black"
+              onClick={handleClose}
+              aria-label="关闭"
+              className="absolute right-3 top-3 z-30 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200/80 bg-white text-lg leading-none text-gray-500 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
             >
-              <span>+ 添加来源</span>
+              ✕
             </button>
-          )}
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-12 font-sans text-gray-800 selection:bg-blue-100 sm:px-5">
+              <motion.div
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 text-center sm:px-8"
+              >
+                <h2 className="flex flex-wrap items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <Sparkles className="text-amber-400 h-7 w-7 md:h-8 md:w-8" />
+                  <span>构建你的</span>
+                  <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">「品牌策略蓝图」</span>
+                </h2>
+              </motion.div>
+
+              <motion.div
+                layout
+                className="relative w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                style={{ minHeight: "280px" }}
+              >
+                <BlueprintContent />
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function KnowledgeInitState({ items, onInputStart, onFileUpload, onLinkAdd, onTextAdd }) {
+      const [inputValue, setInputValue] = useState("");
+      const [brandBlueprintModalOpen, setBrandBlueprintModalOpen] = useState(false);
+      const [modalOpen, setModalOpen] = useState(false);
+      const resolvedItems = items.map(it => ({ ...it, icon: TYPE_ICONS[it.type] || "📄" }));
+      const dnaPreviewCardInner = (
+        <>
+          <p className="mb-4 text-center text-sm font-semibold text-gray-700">品牌档案预览</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm text-gray-500">
+            <div>· 品牌定位：...</div>
+            <div>· 核心受众：...</div>
+            <div>· 品牌风格：...</div>
+            <div>· 营销节点：...</div>
+          </div>
+        </>
+      );
+      const renderSourcePanel = () => (
+        <div className="flex min-h-0 w-56 shrink-0 flex-col border-r border-gray-200 bg-gray-50 p-4">
           <div className="flex items-center gap-2 text-gray-500">
             <span className="text-xl">📄</span>
             <span className="text-xs font-medium">来源</span>
           </div>
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="mb-4 mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-black hover:bg-gray-50 hover:text-black"
+          >
+            <span>+ 添加来源</span>
+          </button>
           {items.length > 0 ? (
             <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
               {resolvedItems.map((item) => (
@@ -893,45 +1135,23 @@
             <div className="mt-6 flex flex-1 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-white px-4 py-8 text-center">
               <p className="text-sm text-gray-400">已保存的来源将</p>
               <p className="text-sm text-gray-400">显示在此处</p>
-              {examplePreviewOpen && <p className="mt-2 text-xs text-gray-400">点击上方按钮添加</p>}
             </div>
           )}
         </div>
       );
       const chatColumn = (
-        <div className="flex min-w-0 flex-1 flex-col border-r border-gray-200">
-          <div className="flex-1 overflow-y-auto px-6 py-8">
-            {examplePreviewOpen ? (
-              <div className="mx-auto max-w-xl">
-                <h1 className="text-xl font-bold text-black">✨ 开始构建知识库</h1>
-                <div className="mt-6 rounded-xl border-2 border-gray-200 bg-white p-5 shadow-sm">
-                  <p className="text-sm font-semibold text-gray-700">🧩 预览中</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-500">
-                    <div>· 定位：...</div>
-                    <div>· 受众：...</div>
-                  </div>
-                  <p className="mt-3 text-xs text-gray-400">( 正在查看示例 )</p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center">
-                <h1 className="text-2xl font-bold tracking-tight text-black md:text-3xl">✨ 开始构建你的「品牌知识库」</h1>
-                <button
-                  type="button"
-                  onClick={() => setExamplePreviewOpen(true)}
-                  className="mt-8 w-full max-w-xl rounded-xl border-2 border-gray-200 bg-white px-6 py-8 text-left shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
-                >
-                  <p className="mb-4 text-center text-sm font-semibold text-gray-700">🧩 专属品牌 DNA 档案预览</p>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm text-gray-500">
-                    <div>· 核心定位：...</div>
-                    <div>· 核心受众：...</div>
-                    <div>· 品牌人设：...</div>
-                    <div>· 沟通避坑：...</div>
-                  </div>
-                  <p className="mt-4 text-center text-xs text-gray-400">( 点击查看 AI 生成的资产效果示例 )</p>
-                </button>
-              </div>
-            )}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-gray-200">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-8">
+            <div className="flex flex-col items-center justify-center">
+              <h1 className="text-2xl font-bold tracking-tight text-black md:text-3xl">✨ 开始沉淀你的「品牌资产」</h1>
+              <button
+                type="button"
+                onClick={() => setBrandBlueprintModalOpen(true)}
+                className="mt-8 w-full max-w-xl rounded-xl border-2 border-gray-200 bg-white px-6 py-8 text-left shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+              >
+                {dnaPreviewCardInner}
+              </button>
+            </div>
           </div>
           <div className="shrink-0 border-t border-gray-200 bg-white p-4">
             <MultiModalInputBar
@@ -947,62 +1167,11 @@
       );
 
       return (
-        <div className="flex h-[calc(100vh-5rem)] flex-1">
+        <div className="flex h-full min-h-0 w-full flex-1">
           <AddSourceModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onFileUpload={onFileUpload} onLinkAdd={onLinkAdd} onTextAdd={onTextAdd} />
+          <BrandBlueprintPreviewModal isOpen={brandBlueprintModalOpen} onClose={() => setBrandBlueprintModalOpen(false)} />
           {renderSourcePanel()}
           {chatColumn}
-          {examplePreviewOpen && (
-            <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-gray-50">
-              <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
-                <h2 className="text-base font-semibold text-black">预览详情 (Preview Panel)</h2>
-                <button type="button" onClick={() => setExamplePreviewOpen(false)} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
-              </div>
-              <div className="flex-1 overflow-y-auto px-6 py-6">
-                <h2 className="text-lg font-semibold text-black">🛡️ [ 示例 ] 品牌资产全案详情</h2>
-                <div className="mt-6 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">1. 品牌基础身份与故事</h3>
-                  <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
-                    <li>· 品牌定位：纯植物提取护肤</li>
-                    <li>· Slogan：科技还原自然之美</li>
-                    <li>· 核心卖点：24小时持久保湿、0致敏添加</li>
-                  </ul>
-                </div>
-                <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">2. 目标人群与痛点</h3>
-                  <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
-                    <li>· 核心人群：25-35岁一二线城市新锐白领</li>
-                    <li>· 核心痛点：长期面对电脑导致肌肤暗沉、工作压力大追求松弛感</li>
-                  </ul>
-                </div>
-                <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">3. 文本语感与调性</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-gray-700">沟通语气：专业严谨、温柔治愈、不爹味说教</p>
-                </div>
-                <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">4. 视觉与审美资产</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-gray-700">品牌主色调：#00FF00 (自然绿)、#FFFFFF (极简白)</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600">极简留白</span>
-                    <span className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600">日系清新</span>
-                    <span className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600">高光泽感</span>
-                  </div>
-                </div>
-                <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">5. 护栏与排他禁忌</h3>
-                  <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
-                    <li>· 禁用词汇：平替、廉价、化工</li>
-                    <li>· 竞品避让：品牌X、品牌Y</li>
-                  </ul>
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-sm font-semibold text-black">6. 营销日历规划</h3>
-                  <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
-                    <li>· 核心节点：3.8女神节、9月秋季抗敏周、双11大促</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       );
     }
@@ -1143,99 +1312,124 @@
       { id: "s3", type: "image", name: "小红书参考2.jpg" }
     ];
 
-    // 渠道矩阵涉及平台：LinkedIn, Shopify, WordPress, Reddit, X, Instagram, Facebook, Medium
-    const CHANNELS_MATRIX_PROPOSAL = [
-      { id: "linkedin", name: "LinkedIn", role: "职场背书号", icon: "💼",
-        identity: "扮演一位资深职场领路人，去跟那些求知欲强的精英聊天。",
-        visualVoice: { visual: "极简、冷色调", verbal: "理性、克制，禁用多表情" },
-        materialReq: "主打 1:1 图文，文案建议 300 字以上深度拆解。" },
-      { id: "shopify", name: "Shopify", role: "电商转化号", icon: "🛒",
-        identity: "扮演一位懂转化的电商操盘手，去帮那些急于出单的独立站卖家支招。",
-        visualVoice: { visual: "产品聚焦、高质感", verbal: "直接、结果导向，强调 ROI" },
-        materialReq: "主打产品图+卖点文案，强调限时优惠和行动 CTA。" },
-      { id: "wordpress", name: "WordPress", role: "内容深度号", icon: "📝",
-        identity: "扮演一位 SEO 与内容专家，去吸引那些关注长期流量的站长。",
-        visualVoice: { visual: "结构化、易扫读", verbal: "专业、有据可依" },
-        materialReq: "主打长文与教程，建议 800+ 字，配合 H2/H3 结构。" },
-      { id: "reddit", name: "Reddit", role: "社区真实号", icon: "🔴",
-        identity: "扮演一位真实用户，去跟 subreddit 里的圈内人讨论，而非硬广。",
-        visualVoice: { visual: "原生、无过度设计", verbal: "大白话、接地气、有观点" },
-        materialReq: "以帖子和回复为主，避免硬推销，强调真实体验分享。" },
-      { id: "x", name: "X (Twitter)", role: "热点引爆号", icon: "𝕏",
-        identity: "扮演一位敏锐的行业观察者，去抓住即时热点与话题参与讨论。",
-        visualVoice: { visual: "极简、信息密度高", verbal: "短平快、有梗、易转发" },
-        materialReq: "280 字内，标题前置抓人，善用 hashtag 和引用。" },
-      { id: "instagram", name: "Instagram", role: "视觉种草号", icon: "📷",
-        identity: "扮演一位高审美的生活家，去吸引向往美好生活的年轻人。",
-        visualVoice: { visual: "明亮、有留白", verbal: "轻盈、感性，多用 Emoji" },
-        materialReq: "4:5 首选尺寸，强调首图的视觉张力。" },
-      { id: "facebook", name: "Facebook", role: "广覆盖号", icon: "📘",
-        identity: "扮演一位可信赖的伙伴，去触达更广泛年龄层与地区用户。",
-        visualVoice: { visual: "清晰、易读", verbal: "亲和、易懂、多本地化" },
-        materialReq: "图文结合，可配合短视频，适合信息流投放。" },
-      { id: "medium", name: "Medium", role: "深度阅读号", icon: "📄",
-        identity: "扮演一位有见地的写作者，去吸引追求深度阅读的知识型用户。",
-        visualVoice: { visual: "干净、专注内容", verbal: "有洞察、有故事、有引用" },
-        materialReq: "主打长文，1500+ 字，配合小标题与引用块。" }
-    ];
-    const CHANNELS_MATRIX_PROPOSAL_BY_ID = Object.fromEntries(CHANNELS_MATRIX_PROPOSAL.map(p => [p.id, p]));
+    const PREVIEW_SECTION_SOURCES = {
+      1: [{ type: "file", name: "品牌手册.pdf" }, { type: "text", name: "用户粘贴（品牌介绍）" }],
+      2: [{ type: "file", name: "品牌手册.pdf" }, { type: "image", name: "小红书参考1.jpg" }],
+      3: (v) => v === "conflict" ? [] : [{ type: "link", name: "官网 about 页" }],
+      4: [{ type: "image", name: "小红书参考1.jpg" }],
+      5: [{ type: "file", name: "品牌手册.pdf" }],
+      6: [],
+      7: []
+    };
 
-    function KnowledgeChatState({ items, onFileUpload, onLinkAdd, onTextAdd, onSend, onConfirm, onSaveToBrand, onSaveToChannels }) {
+    function SourceRefBadge({ sectionKey, variant }) {
+      const sources = typeof PREVIEW_SECTION_SOURCES[sectionKey] === "function" ? PREVIEW_SECTION_SOURCES[sectionKey](variant) : (PREVIEW_SECTION_SOURCES[sectionKey] || []);
+      const [hover, setHover] = useState(false);
+      if (sources.length === 0) return null;
+      return (
+        <span className="relative ml-1 inline-block align-baseline" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+          <button
+            type="button"
+            className={`border-0 bg-transparent p-0 align-super text-[10px] font-medium leading-none tabular-nums tracking-tight transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300/60 ${hover ? "text-gray-600 underline decoration-gray-400/80 underline-offset-2" : "text-gray-400 hover:text-gray-500"}`}
+            title="查看引用来源"
+          >
+            [{sources.length}]
+          </button>
+          {hover && (
+            <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] max-w-[320px] rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
+              <div className="absolute -top-1.5 left-4 h-2 w-2 rotate-45 border-l border-t border-gray-200 bg-white" />
+              <p className="mb-2 text-xs font-semibold text-gray-500">📎 引用来源</p>
+              <ul className="space-y-1.5">
+                {sources.map((src, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                    <span>{TYPE_ICONS[src.type] || "📄"}</span>
+                    <span className="min-w-0 flex-1 truncate">{src.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </span>
+      );
+    }
+
+    function KnowledgeChatState({ items, onFileUpload, onLinkAdd, onTextAdd, onSend, onConfirm, onSaveToBrand, onSaveToChannels, variant }) {
       const [modalOpen, setModalOpen] = useState(false);
-      const [previewOpen, setPreviewOpen] = useState(false);
+      const [previewOpen, setPreviewOpen] = useState(variant === "conflict");
       const [matrixPreviewOpen, setMatrixPreviewOpen] = useState(false);
       const [phase, setPhase] = useState("brand_dna");
       const [inputValue, setInputValue] = useState("");
       const [selectedText, setSelectedText] = useState(null);
+      const [selectionRect, setSelectionRect] = useState(null);
+      const [quotedRef, setQuotedRef] = useState(null);
       const [messages, setMessages] = useState([]);
       const displayItems = items.length > 0 ? items : KNOWLEDGE_CHAT_SAMPLE_ITEMS;
+
+      const handleTextSelection = () => {
+        const sel = window.getSelection();
+        const t = sel?.toString().trim();
+        if (t) {
+          try {
+            const r = sel.getRangeAt(0).getBoundingClientRect();
+            setSelectedText(t);
+            setSelectionRect({ top: r.top, right: r.right, bottom: r.bottom, left: r.left });
+          } catch {
+            setSelectedText(t);
+            setSelectionRect(null);
+          }
+        } else {
+          setSelectedText(null);
+          setSelectionRect(null);
+        }
+      };
 
       const handleSaveBrandDna = () => {
         onSaveToBrand && onSaveToBrand();
         setPhase("channel_matrix");
         setMessages(prev => [...prev, { id: "ai-" + Date.now(), role: "assistant", content: "好的！品牌档案已存入。那现在我们再来看一下整个账号矩阵相关的部分～" }]);
       };
-      const handleTextSelection = () => { const sel = window.getSelection(); const t = sel?.toString().trim(); setSelectedText(t || null); };
-      const addQuoteToInput = () => { if (selectedText) { setInputValue(p => (p ? p + "\n\n" : "") + '> "' + selectedText + '"\n'); setSelectedText(null); } };
+      const addQuoteToInput = () => { if (selectedText) { setQuotedRef(selectedText); setSelectedText(null); setSelectionRect(null); } };
+      const removeQuotedRef = () => setQuotedRef(null);
       const resolvedItems = displayItems.map(it => ({ ...it, icon: TYPE_ICONS[it.type] || "📄" }));
       const handleSend = () => {
         const text = inputValue.trim();
-        if (!text) return;
+        const hasQuote = quotedRef && quotedRef.trim();
+        if (!text && !hasQuote) return;
+        const content = hasQuote ? (text ? text + "\n\n> \"" + quotedRef + "\"" : '> "' + quotedRef + '"') : text;
         setInputValue("");
-        setMessages(prev => [...prev, { id: "u-" + Date.now(), role: "user", content: text }]);
+        setQuotedRef(null);
+        setMessages(prev => [...prev, { id: "u-" + Date.now(), role: "user", content }]);
         setTimeout(() => setMessages(prev => [...prev, { id: "a-" + Date.now(), role: "assistant", content: "收到！我会根据您的反馈进一步优化档案内容。" }]), 600);
-        if (onSend) onSend(text);
+        if (onSend) onSend(content);
       };
       const showRightPanel = previewOpen || matrixPreviewOpen;
       const chatColumn = (
-        <div className={`flex min-w-0 flex-1 flex-col border-r border-gray-200 ${showRightPanel ? "w-[320px] shrink-0" : ""}`}>
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+        <div className={`flex min-h-0 min-w-0 flex-1 flex-col border-r border-gray-200 ${showRightPanel ? "w-[320px] shrink-0" : ""}`}>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 pb-32 space-y-4">
             <div className={showRightPanel ? "max-w-full" : "mx-auto max-w-2xl"}>
               <p className="text-base text-gray-800 leading-relaxed">&quot;{previewOpen ? "档案已生成，请预览。" : "档案已生成！包含以下内容："}&quot;</p>
               {!previewOpen && (
                 <ul className="mt-4 space-y-2 pl-4">
-                  <li className="text-sm text-gray-700"><strong>品牌定位</strong> — 明确了职场专业与亲和力的平衡点。</li>
-                  <li className="text-sm text-gray-700"><strong>人群画像</strong> — 针对不同阶段用户梳理了 5 大焦虑点。</li>
+                  <li className="text-sm text-gray-700"><strong>品牌定位</strong> — 纯植物护肤、科技与自然并重的价值主张。</li>
+                  <li className="text-sm text-gray-700"><strong>核心受众</strong> — 一二线城市新锐白领，关注职场压力与肌肤状态。</li>
+                  <li className="text-sm text-gray-700"><strong>品牌风格</strong> — 专业严谨、温柔治愈，避免说教感。</li>
+                  <li className="text-sm text-gray-700"><strong>物料风格</strong> — 自然绿与极简白，日系清新、高光泽视觉。</li>
+                  <li className="text-sm text-gray-700"><strong>品牌红线与准则</strong> — 禁用平替/廉价/化工表述，避让指定竞品。</li>
+                  <li className="text-sm text-gray-700"><strong>营销节点</strong> — 女神节、秋季抗敏周、双11 等关键战役。</li>
+                  <li className="text-sm text-gray-700"><strong>营销账号矩阵</strong> — 多平台「性格分身」与内容分工。</li>
                 </ul>
               )}
               <div className="mt-6 rounded-xl border-2 border-gray-200 bg-white p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xl">📄</div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-semibold text-black">品牌 DNA 全案</h3>
-                    <div className="mt-3 flex gap-2">
+                    <h3 className="text-sm font-semibold text-black">品牌资产全案</h3>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button type="button" onClick={() => setPreviewOpen(p => !p)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">👁️ 预览详情</button>
                       {phase === "channel_matrix" ? (
-                        <span className="rounded border border-success bg-success/10 px-3 py-1.5 text-xs font-medium text-success">✓ 已存入</span>
-                      ) : previewOpen ? (
-                        <>
-                          <span className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-500">预览中...</span>
-                          <Button size="sm" onClick={() => setPreviewOpen(false)}>✅ 存入</Button>
-                        </>
+                        <span className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-500">已保存</span>
                       ) : (
-                        <>
-                          <button type="button" onClick={() => setPreviewOpen(true)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">👁️ 预览详情</button>
-                          <button type="button" onClick={handleSaveBrandDna} className="rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-50">✅ 存入模块</button>
-                        </>
+                        <button type="button" onClick={handleSaveBrandDna} className="rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800">✅ 保存</button>
                       )}
                     </div>
                   </div>
@@ -1271,18 +1465,25 @@
               </div>
             ))}
           </div>
-          <div className="shrink-0 border-t border-gray-200 bg-white p-4">
+          <div
+            className="fixed bottom-14 z-10 border-t border-gray-200 bg-white p-4"
+            style={{
+              left: "30rem",
+              width: showRightPanel ? 320 : "calc(100vw - 30rem)"
+            }}
+          >
             <div className="space-y-2">
               <div className="flex min-w-0 items-center gap-2 rounded-lg border-2 border-gray-300 bg-white p-2 transition-colors focus-within:border-black">
                 <button type="button" className="shrink-0 rounded p-2 text-gray-400 hover:text-black">🎤</button>
                 <input type="text" value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
                   placeholder={matrixPreviewOpen ? "继续提出修改意见" : previewOpen ? "继续指挥修改" : "对建议不满意？在这里告诉我你的想法..."} className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-sm text-black outline-none placeholder:text-gray-400" />
-                <Button size="sm" onClick={handleSend} disabled={!inputValue.trim()}>发送</Button>
+                <Button size="sm" onClick={handleSend} disabled={!inputValue.trim() && !quotedRef}>发送</Button>
               </div>
-              {(previewOpen || matrixPreviewOpen) && selectedText && (
-                <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
-                  <span className="flex-1 truncate text-xs text-gray-600">已选: &quot;{selectedText.slice(0, 40)}{selectedText.length > 40 ? "…" : ""}&quot;</span>
-                  <Button size="sm" variant="secondary" onClick={addQuoteToInput}>添加到对话 ↙️</Button>
+              {quotedRef && (
+                <div className="flex items-start gap-2 rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2">
+                  <span className="mt-0.5 shrink-0 text-xs text-gray-500">引用:</span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-gray-700" title={quotedRef}>"{quotedRef.length > 36 ? quotedRef.slice(0, 36) + "…" : quotedRef}"</span>
+                  <button type="button" onClick={removeQuotedRef} className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-black" title="移除">×</button>
                 </div>
               )}
             </div>
@@ -1291,7 +1492,7 @@
       );
 
       return (
-        <div className="flex h-[calc(100vh-5rem)] flex-1">
+        <div className="flex h-[calc(100vh-5rem)] min-h-0 flex-1 overflow-hidden">
           <AddSourceModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onFileUpload={onFileUpload} onLinkAdd={onLinkAdd} onTextAdd={onTextAdd} />
           <div className="flex w-56 shrink-0 flex-col border-r border-gray-200 bg-gray-50 p-4">
             <button
@@ -1313,16 +1514,16 @@
           </div>
           {chatColumn}
           {matrixPreviewOpen && (
-            <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-gray-50">
-              <div className="flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-gray-50">
+              <div className="shrink-0 flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3">
                 <h2 className="text-base font-semibold text-black">预览详情 (Preview Panel)</h2>
                 <div className="flex items-center gap-2">
                   <Button size="sm" onClick={() => { onSaveToChannels && onSaveToChannels(); setMatrixPreviewOpen(false); }}>✅ 确认方案：同步并创建这 {CHANNELS_MATRIX_PROPOSAL.length} 个账号配置到「渠道账号」</Button>
                   <button type="button" onClick={() => setMatrixPreviewOpen(false)} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto px-6 py-6" onMouseUp={handleTextSelection}>
-                <h2 className="text-lg font-semibold text-black">🛡️ 全渠道矩阵运营提案</h2>
+              <div className="preview-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-6" onMouseUp={handleTextSelection}>
+                <h2 className="text-lg font-semibold text-black">🛡️ 营销账号矩阵</h2>
                 <p className="mt-2 text-sm text-gray-600">基于您的品牌资料，建议通过以下「性格分身」进行全网发声：</p>
                 <div className="mt-6 space-y-4">
                   {CHANNELS_MATRIX_PROPOSAL.map((p) => (
@@ -1348,18 +1549,18 @@
             </div>
           )}
           {previewOpen && !matrixPreviewOpen && (
-            <div className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-gray-50">
-              <div className="flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-gray-50">
+              <div className="shrink-0 flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3">
                 <h2 className="text-base font-semibold text-black">预览详情 (Preview Panel)</h2>
                 <div className="flex items-center gap-2">
                   <Button size="sm" onClick={() => onSaveToBrand && onSaveToBrand()}>✅ 确认无误，同步到品牌模块</Button>
                   <button type="button" onClick={() => setPreviewOpen(false)} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto px-6 py-6" onMouseUp={handleTextSelection}>
+              <div className="preview-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-6" onMouseUp={handleTextSelection}>
                 <h2 className="text-lg font-semibold text-black">🛡️ 品牌资产全案详情</h2>
                 <div className="mt-6 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">1. 品牌基础身份与故事</h3>
+                  <h3 className="text-sm font-semibold text-black">品牌定位<SourceRefBadge sectionKey={1} variant={variant} /></h3>
                   <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
                     <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 品牌定位：纯植物提取护肤</li>
                     <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· Slogan：科技还原自然之美</li>
@@ -1367,18 +1568,33 @@
                   </ul>
                 </div>
                 <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">2. 目标人群与痛点</h3>
+                  <h3 className="text-sm font-semibold text-black">核心受众<SourceRefBadge sectionKey={2} variant={variant} /></h3>
                   <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
                     <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心人群：25-35岁一二线城市新锐白领</li>
                     <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心痛点：长期面对电脑导致肌肤暗沉、工作压力大追求松弛感</li>
                   </ul>
                 </div>
                 <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">3. 文本语感与调性</h3>
-                  <p className="mt-2 select-text cursor-text rounded-md px-2 py-1 text-sm leading-relaxed text-gray-700 hover:bg-gray-100">沟通语气：专业严谨、温柔治愈、不爹味说教</p>
+                  <h3 className="text-sm font-semibold text-black">品牌风格{variant === "conflict" && <span className="ml-2 text-amber-600">(❓ 待补全)</span>}<SourceRefBadge sectionKey={3} variant={variant} /></h3>
+                  {variant === "conflict" ? (
+                    <div className="mt-3 rounded-lg border-2 border-amber-200 bg-amber-50 p-4">
+                      <div className="flex items-start gap-2">
+                        <span className="text-amber-600">[ ! ]</span>
+                        <p className="text-sm text-gray-700">尚未从来源中捕捉到您的发声习惯。</p>
+                      </div>
+                      <hr className="my-3 border-amber-200" />
+                      <p className="text-xs font-medium text-gray-600">💡 补全建议：</p>
+                      <ul className="mt-1 space-y-1 pl-4 text-sm text-gray-700">
+                        <li>· 在左侧上传几段您的 <span className="rounded bg-amber-100/80 px-1 py-0.5">往期推文</span> 或 <span className="rounded bg-amber-100/80 px-1 py-0.5">宣传文案</span></li>
+                        <li>· 或直接描述：&quot;我希望像[苹果]一样简洁&quot;</li>
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="mt-2 select-text cursor-text rounded-md px-2 py-1 text-sm leading-relaxed text-gray-700 hover:bg-gray-100">沟通语气：专业严谨、温柔治愈、不爹味说教</p>
+                  )}
                 </div>
                 <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">4. 视觉与审美资产</h3>
+                  <h3 className="text-sm font-semibold text-black">物料风格<SourceRefBadge sectionKey={4} variant={variant} /></h3>
                   <p className="mt-2 select-text cursor-text rounded-md px-2 py-1 text-sm leading-relaxed text-gray-700 hover:bg-gray-100">品牌主色调：#00FF00 (自然绿)、#FFFFFF (极简白)</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <span className="select-text cursor-text rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100">极简留白</span>
@@ -1387,19 +1603,49 @@
                   </div>
                 </div>
                 <div className="mt-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-sm font-semibold text-black">5. 护栏与排他禁忌</h3>
+                  <h3 className="text-sm font-semibold text-black">品牌红线与准则<SourceRefBadge sectionKey={5} variant={variant} /></h3>
                   <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
                     <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 禁用词汇：平替、廉价、化工</li>
                     <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 竞品避让：品牌X、品牌Y</li>
                   </ul>
                 </div>
-                <div className="mt-4">
-                  <h3 className="text-sm font-semibold text-black">6. 营销日历规划</h3>
+                <div className="mt-4 border-b border-gray-200 pb-4">
+                  <h3 className="text-sm font-semibold text-black">营销节点<SourceRefBadge sectionKey={6} variant={variant} /></h3>
                   <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
                     <li className="select-text cursor-text rounded-md px-2 py-1 hover:bg-gray-100">· 核心节点：3.8女神节、9月秋季抗敏周、双11大促</li>
                   </ul>
                 </div>
+                <div className="mt-4">
+                  <h3 className="text-sm font-semibold text-black">营销账号矩阵<SourceRefBadge sectionKey={7} variant={variant} /></h3>
+                  <p className="mt-2 text-sm text-gray-600">基于您的品牌资料，建议通过以下「性格分身」进行全网发声：</p>
+                  <div className="mt-4 space-y-3">
+                    {CHANNELS_MATRIX_PROPOSAL.map((p) => (
+                      <div key={p.id} className="select-text cursor-text rounded-lg border border-gray-200 bg-white p-3 hover:bg-gray-50">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{p.icon}</span>
+                          <h4 className="text-sm font-semibold text-black">{p.name} ({p.role})</h4>
+                        </div>
+                        <ul className="mt-2 space-y-1 pl-4 text-sm text-gray-700">
+                          <li><strong>账号身份：</strong>{p.identity}</li>
+                          <li><strong>画风口吻：</strong>{`画面要[${p.visualVoice?.visual ?? ""}]，说话要[${p.visualVoice?.verbal ?? ""}]`}</li>
+                          <li><strong>物料要求：</strong>{p.materialReq}</li>
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
+            </div>
+          )}
+          {(previewOpen || matrixPreviewOpen) && selectedText && selectionRect && (
+            <div
+              className="fixed z-50 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg"
+              style={{
+                left: Math.max(8, selectionRect.right - 148),
+                top: Math.max(8, selectionRect.top - 44)
+              }}
+            >
+              <Button size="sm" variant="secondary" onClick={addQuoteToInput}>添加到对话 ↙️</Button>
             </div>
           )}
         </div>
@@ -1446,11 +1692,11 @@
       const handleConfirm = useCallback(() => setState("init"), []);
 
       return (
-        <div className="relative flex min-h-screen flex-col bg-white pb-16">
+        <div className="relative flex h-[calc(100vh-5rem)] min-h-0 flex-col overflow-hidden bg-white pb-16">
           {state === "init" && <KnowledgeInitState items={uploadedItems} onInputStart={handleInputStart} onFileUpload={handleFileUpload} onLinkAdd={handleLinkAdd} onTextAdd={handleTextAdd} />}
           {state === "parsing" && <KnowledgeParsingState items={uploadedItems} onFileUpload={handleFileUpload} onLinkAdd={handleLinkAdd} onTextAdd={handleTextAdd} />}
           {state === "chat" && <KnowledgeChatState items={uploadedItems} onFileUpload={handleFileUpload} onLinkAdd={handleLinkAdd} onTextAdd={handleTextAdd} onSend={() => {}} onConfirm={handleConfirm} onSaveToBrand={onSaveToBrand} onSaveToChannels={onSaveToChannels} />}
-          {state === "conflict" && <ChatCanvasState archive={archive} onConfirm={handleConfirm} variant="4.5" />}
+          {state === "conflict" && <KnowledgeChatState variant="conflict" items={uploadedItems} onFileUpload={handleFileUpload} onLinkAdd={handleLinkAdd} onTextAdd={handleTextAdd} onSend={() => {}} onConfirm={handleConfirm} onSaveToBrand={onSaveToBrand} onSaveToChannels={onSaveToChannels} />}
           <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-gray-100 px-4 py-3 md:left-64">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium text-gray-500">品牌知识库 Debug:</span>
@@ -1497,7 +1743,24 @@
       ]},
       { id: "medium", name: "Medium", icon: "📄", accounts: [
         { id: "md1", handle: "@未配置", status: "style_only", positioning: "深度阅读号", size: "-", needBind: false }
+      ]},
+      { id: "tiktok", name: "TikTok", icon: "🤳", accounts: [
+        { id: "tt1", handle: "@未配置", status: "style_only", positioning: "短视频爆款号", size: "-", needBind: true }
       ]}
+    ];
+
+    const ADD_ACCOUNT_PLATFORM_IDS = ["linkedin", "tiktok", "instagram", "shopify", "wordpress", "reddit", "x", "facebook", "medium"];
+
+    const ADD_ACCOUNT_FALLBACK_DRAFT = {
+      identity: "扮演一位走在趋势前沿的潮流观察员，用解构主义视角点评新品与行业风向。",
+      visualVoice: { visual: "高频混剪、强节奏感", verbal: "犀利、带点幽默感" },
+      materialReq: "15-30s 短视频，前 3 秒必须有视觉钩子，结尾带互动话题。"
+    };
+
+    const IDENTITY_ALTERNATES = [
+      "扮演一位走在趋势前沿的潮流观察员，用解构主义视角点评新品与行业风向。",
+      "以「圈内人」视角拆解热点，帮用户快速抓住传播要点。",
+      "用轻松但有料的口吻，把复杂趋势讲成可执行的行动清单。"
     ];
 
     // 当前 project 下已绑定的平台账号（mock，后续由后端提供）
@@ -1589,6 +1852,22 @@
       );
     }
 
+    function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, description, confirmLabel = "删除" }) {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-black">{title}</h3>
+            <p className="mt-2 text-sm text-gray-600">{description}</p>
+            <div className="mt-6 flex gap-3">
+              <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">取消</button>
+              <button type="button" onClick={onConfirm} className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-700">{confirmLabel}</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     function BindModal({ isOpen, onClose, platformName, platformIcon }) {
       if (!isOpen) return null;
       return (
@@ -1632,14 +1911,141 @@
       );
     }
 
-    function ChannelsPage() {
+    function AddAccountModal({ isOpen, onClose, platforms, onConfirm }) {
+      const [selectedId, setSelectedId] = useState(null);
+      const [identity, setIdentity] = useState("");
+      const [visualVoiceText, setVisualVoiceText] = useState("");
+      const [materialReq, setMaterialReq] = useState("");
+      const [identityAltIdx, setIdentityAltIdx] = useState(0);
+      const [previewOpen, setPreviewOpen] = useState(false);
+      const pickerList = ADD_ACCOUNT_PLATFORM_IDS.map(id => platforms.find(p => p.id === id)).filter(Boolean);
+
+      useEffect(() => {
+        if (!isOpen) return;
+        setSelectedId(null);
+        setIdentity("");
+        setVisualVoiceText("");
+        setMaterialReq("");
+        setIdentityAltIdx(0);
+        setPreviewOpen(false);
+      }, [isOpen]);
+
+      useEffect(() => {
+        if (!isOpen || !selectedId) return;
+        const matrix = CHANNELS_MATRIX_PROPOSAL_BY_ID[selectedId];
+        const fb = ADD_ACCOUNT_FALLBACK_DRAFT;
+        if (matrix) {
+          setIdentity(matrix.identity);
+          setVisualVoiceText(`画面要[${matrix.visualVoice?.visual ?? ""}]；口吻要[${matrix.visualVoice?.verbal ?? ""}]`);
+          setMaterialReq(matrix.materialReq);
+        } else {
+          setIdentity(fb.identity);
+          setVisualVoiceText(`画面要[${fb.visualVoice.visual}]；口吻要[${fb.visualVoice.verbal}]`);
+          setMaterialReq(fb.materialReq);
+        }
+      }, [isOpen, selectedId]);
+
+      const shuffleIdentity = () => {
+        const i = (identityAltIdx + 1) % IDENTITY_ALTERNATES.length;
+        setIdentityAltIdx(i);
+        setIdentity(IDENTITY_ALTERNATES[i]);
+      };
+      const shuffleVisual = () => {
+        setVisualVoiceText(p => p + (p.match(/✨/) ? "" : " ✨ 已微调语气"));
+      };
+
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-5 py-4">
+              <h2 className="text-lg font-semibold text-black">✨ 新增发声账号</h2>
+              <button type="button" onClick={onClose} className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
+            </div>
+            <div className="space-y-6 px-5 py-5">
+              <div>
+                <p className="text-sm font-medium text-gray-500">第一步：选择平台</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {pickerList.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedId(p.id)}
+                      className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${selectedId === p.id ? "border-black bg-gray-100 text-black" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"}`}
+                    >
+                      <span className="mr-1">{p.icon}</span>
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <hr className="border-gray-200" />
+              <div className={!selectedId ? "pointer-events-none opacity-50" : ""}>
+                <p className="text-sm font-medium text-gray-500">第二步：确认账号性格 <span className="font-normal text-gray-400">(已基于 <strong className="text-gray-600">品牌基因</strong> 自动生成建议)</span></p>
+                {!selectedId && <p className="mt-2 text-xs text-amber-600">请先选择平台</p>}
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-sm font-semibold text-black">● 账号身份</span>
+                      <button type="button" onClick={shuffleIdentity} className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50">✨ 换个说法</button>
+                    </div>
+                    <textarea value={identity} onChange={e => setIdentity(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-black" />
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-sm font-semibold text-black">● 画风口吻</span>
+                      <button type="button" onClick={shuffleVisual} className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50">✨</button>
+                    </div>
+                    <textarea value={visualVoiceText} onChange={e => setVisualVoiceText(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-black" />
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-sm font-semibold text-black">● 物料要求</span>
+                    </div>
+                    <textarea value={materialReq} onChange={e => setMaterialReq(e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none focus:border-black" />
+                  </div>
+                </div>
+              </div>
+              {previewOpen && (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                  <p className="text-xs font-medium text-gray-500">风格样本预览</p>
+                  <p className="mt-2 line-clamp-3">基于当前设定，生成的一条示例文案将在此展示（演示）。</p>
+                </div>
+              )}
+            </div>
+            <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 bg-white px-5 py-4">
+              <button type="button" onClick={() => setPreviewOpen(true)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">预览风格样本</button>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={onClose}>取消</Button>
+                <Button size="sm" onClick={() => selectedId && onConfirm({ platformId: selectedId, identity, visualVoiceText, materialReq })} disabled={!selectedId}>确认添加</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ChannelsPage({ syncedChannelMatrix, onSyncConsumed }) {
       const [platforms, setPlatforms] = useState(CHANNELS_DATA);
+      const [addAccountOpen, setAddAccountOpen] = useState(false);
       const [collapsed, setCollapsed] = useState({});
       const [bindFlowState, setBindFlowState] = useState("idle"); // idle | choice | picker | pipedream
       const [bindTarget, setBindTarget] = useState(null); // { platform, account }
       const [expandedSampleId, setExpandedSampleId] = useState(null); // acc.id
       const [editingAccountId, setEditingAccountId] = useState(null); // acc.id
       const [editDraft, setEditDraft] = useState(null); // { handle, identity, visualVoice: { visual, verbal }, materialReq }
+
+      useEffect(() => {
+        if (syncedChannelMatrix && syncedChannelMatrix.length > 0 && onSyncConsumed) {
+          const byId = Object.fromEntries(syncedChannelMatrix.map(p => [p.id, p]));
+          setPlatforms(prev => prev.map(pl => {
+            const m = byId[pl.id];
+            if (!m) return pl;
+            return { ...pl, accounts: pl.accounts.map(a => ({ ...a, identity: m.identity, visualVoice: m.visualVoice, materialReq: m.materialReq, positioning: m.role })) };
+          }));
+          onSyncConsumed();
+        }
+      }, [syncedChannelMatrix, onSyncConsumed]);
 
       const startEdit = (platform, acc) => {
         const matrix = CHANNELS_MATRIX_PROPOSAL_BY_ID[platform.id] || {};
@@ -1729,53 +2135,142 @@
         closeUnbindConfirm();
       };
 
+      const [deleteTarget, setDeleteTarget] = useState(null); // { type: 'account', platform, account } | { type: 'platform', platform }
+      const closeDeleteConfirm = () => setDeleteTarget(null);
+      const openDeleteAccount = (platform, account) => {
+        setDeleteTarget({ type: "account", platform, account });
+      };
+      const openDeletePlatform = (platform) => {
+        setDeleteTarget({ type: "platform", platform });
+      };
+      const handleDeleteConfirm = () => {
+        if (!deleteTarget) return;
+        if (deleteTarget.type === "account") {
+          const { platform, account } = deleteTarget;
+          if (editingAccountId === account.id) {
+            setEditingAccountId(null);
+            setEditDraft(null);
+          }
+          if (expandedSampleId === account.id) setExpandedSampleId(null);
+          if (bindTarget?.account?.id === account.id) {
+            setBindFlowState("idle");
+            setBindTarget(null);
+          }
+          setPlatforms(prev => prev
+            .map(pl => {
+              if (pl.id !== platform.id) return pl;
+              return { ...pl, accounts: pl.accounts.filter(a => a.id !== account.id) };
+            })
+            .filter(pl => pl.accounts.length > 0));
+        } else {
+          const { platform } = deleteTarget;
+          if (bindTarget?.platform?.id === platform.id) {
+            setBindFlowState("idle");
+            setBindTarget(null);
+          }
+          if (platform.accounts.some(a => a.id === editingAccountId)) {
+            setEditingAccountId(null);
+            setEditDraft(null);
+          }
+          if (platform.accounts.some(a => a.id === expandedSampleId)) setExpandedSampleId(null);
+          setPlatforms(prev => prev.filter(pl => pl.id !== platform.id));
+        }
+        setDeleteTarget(null);
+      };
+
       const PLATFORMS_WITH_BIND = ["linkedin", "shopify", "wordpress"];
       const linkedAccounts = bindTarget ? (LINKED_ACCOUNTS_BY_PLATFORM[bindTarget.platform?.id] ?? []) : [];
       const showChoicePopover = (bindFlowState === "choice" || bindFlowState === "picker") && bindTarget;
 
+      const parseVisualVoiceFromText = (text) => {
+        const v = text.match(/画面要\[([^\]]*)\]/);
+        const verbal = text.match(/口吻要\[([^\]]*)\]/);
+        return { visual: (v && v[1]) ? v[1].trim() : "", verbal: (verbal && verbal[1]) ? verbal[1].trim() : "" };
+      };
+
+      const handleAddAccountConfirm = ({ platformId, identity, visualVoiceText, materialReq }) => {
+        const matrix = CHANNELS_MATRIX_PROPOSAL_BY_ID[platformId];
+        const vv = parseVisualVoiceFromText(visualVoiceText);
+        const visualVoice = (vv.visual || vv.verbal) ? vv : (matrix?.visualVoice ?? { visual: "", verbal: "" });
+        const newAcc = {
+          id: "acc-" + Date.now(),
+          handle: "@未配置",
+          status: "style_only",
+          positioning: matrix?.role ?? "新账号",
+          identity,
+          visualVoice,
+          materialReq,
+          needBind: true
+        };
+        setPlatforms(prev => prev.map(pl => pl.id !== platformId ? pl : { ...pl, accounts: [...pl.accounts, newAcc] }));
+        setAddAccountOpen(false);
+      };
+
       return (
         <div className="min-h-screen px-6 py-8">
+          <AddAccountModal isOpen={addAccountOpen} onClose={() => setAddAccountOpen(false)} platforms={platforms} onConfirm={handleAddAccountConfirm} />
           {showChoicePopover && <div className="fixed inset-0 z-40" onClick={closeBindChoice} aria-hidden="true" />}
           <SaveVerifyModal isOpen={saveVerifyOpen} onClose={closeSaveVerify} onBackToEdit={closeSaveVerify} onConfirm={confirmSaveAndExit} draft={editDraft} />
           <UnbindConfirmModal isOpen={!!unbindTarget} onClose={closeUnbindConfirm} onConfirm={handleUnbindConfirm} accountHandle={unbindTarget?.account?.handle} />
+          <DeleteConfirmModal
+            isOpen={!!deleteTarget}
+            onClose={closeDeleteConfirm}
+            onConfirm={handleDeleteConfirm}
+            title={deleteTarget?.type === "platform" ? "删除整个渠道？" : "删除该账号？"}
+            description={
+              deleteTarget?.type === "platform"
+                ? `将移除「${deleteTarget.platform.icon} ${deleteTarget.platform.name}」及其下全部账号，此操作不可撤销。`
+                : `将永久移除账号「${deleteTarget?.account?.handle ?? ""}」，此操作不可撤销。`
+            }
+            confirmLabel="删除"
+          />
           <BindModal isOpen={bindFlowState === "pipedream"} onClose={closePipedreamModal} platformName={bindTarget?.platform?.name} platformIcon={bindTarget?.platform?.icon} />
           <div className="mx-auto max-w-4xl">
             <div className="mb-8 flex items-center justify-between">
-              <h1 className="text-xl font-bold text-black">您的全球发声矩阵 <span className="font-normal text-gray-500">(共 {platformCount} 个平台, {accountCount} 个账号)</span></h1>
-              <Button size="sm">+ 新增账号</Button>
+              <h1 className="text-xl font-bold text-black">您的营销矩阵 <span className="font-normal text-gray-500">(共 {platformCount} 个平台, {accountCount} 个账号)</span></h1>
+              <Button size="sm" onClick={() => setAddAccountOpen(true)}>+ 新增营销渠道</Button>
             </div>
             <div className="space-y-4">
               {platforms.map((platform) => (
                 <div key={platform.id} className="rounded-xl border border-gray-200 bg-white">
-                  <button
-                    type="button"
-                    onClick={() => togglePlatform(platform.id)}
-                    className="flex w-full items-center gap-3 px-5 py-4 text-left"
-                  >
-                    <span className={`text-gray-500 transition-transform ${collapsed[platform.id] ? "rotate-90" : ""}`}>▾</span>
-                    <span className="text-2xl">{platform.icon}</span>
-                    <span className="text-base font-semibold text-black">{platform.name}</span>
-                  </button>
+                  <div className="flex w-full items-center gap-2 px-5 py-4">
+                    <button
+                      type="button"
+                      onClick={() => togglePlatform(platform.id)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      <span className={`shrink-0 text-gray-500 transition-transform ${collapsed[platform.id] ? "rotate-90" : ""}`}>▾</span>
+                      <span className="text-2xl">{platform.icon}</span>
+                      <span className="text-base font-semibold text-black">{platform.name}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openDeletePlatform(platform)}
+                      className="shrink-0 rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                    >
+                      🗑️ 删除渠道
+                    </button>
+                  </div>
                   {!collapsed[platform.id] && (
                     <div className="space-y-4 p-5 pt-0">
-                      {platform.accounts.map((acc) => {
+                      {platform.accounts.map((acc, accIdx) => {
                         const matrix = CHANNELS_MATRIX_PROPOSAL_BY_ID[platform.id] || {};
                         const identity = acc.identity ?? matrix.identity;
                         const visualVoice = acc.visualVoice ?? matrix.visualVoice;
                         const materialReq = acc.materialReq ?? matrix.materialReq;
                         const isEditing = editingAccountId === acc.id;
                         const draft = isEditing ? editDraft : null;
+                        const isBound = acc.status === "bound" && acc.handle && acc.handle !== "@未配置";
+                        const accountTitle = isBound ? acc.handle : `账号 ${accIdx + 1}`;
                         return (
                           <div key={acc.id} className="w-full rounded-lg border border-gray-200 bg-white">
                             <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xl">{platform.icon}</span>
-                                <span className="text-base font-semibold text-black">{platform.name}</span>
+                              <div className="flex min-w-0 items-center gap-2">
                                 {isEditing ? (
                                   <input type="text" value={draft?.handle ?? ""} onChange={e => setEditDraft(d => d ? { ...d, handle: e.target.value } : null)}
-                                    placeholder="编辑名字" className="rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-black" />
+                                    placeholder="编辑名字" className="min-w-0 max-w-md flex-1 rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-black" />
                                 ) : (
-                                  <code className="rounded bg-gray-100 px-2 py-0.5 text-sm text-gray-700">{acc.handle}</code>
+                                  <span className="truncate text-base font-semibold text-black" title={accountTitle}>{accountTitle}</span>
                                 )}
                               </div>
                               <div className="flex flex-wrap gap-1">
@@ -1811,6 +2306,7 @@
                                         <button type="button" onClick={() => openUnbindConfirm(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-600">🔓 解绑</button>
                                       </>
                                     )}
+                                    <button type="button" onClick={() => openDeleteAccount(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-700">🗑️ 删除</button>
                                   </>
                                 )}
                               </div>
@@ -1884,9 +2380,6 @@
                                         <p className="text-xs font-semibold text-gray-500">样板标题：为什么我们坚持使用 100% 可回收包装？</p>
                                         <p className="text-xs text-gray-400">(基于 1:1 图文)</p>
                                         <p className="mt-2 line-clamp-2 text-sm text-gray-600">在 Workflex 的逻辑里，环保从来不是营销的口号。我们认为，真正的长期主义应该体现在每一个看不见的细节里。哪怕这会增加生产成本，但...</p>
-                                        <div className="mt-3">
-                                          <button type="button" className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-white">🔄 换一个样板</button>
-                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -1910,10 +2403,9 @@
     }
 
     // ============ App ============
-    function BrandBrainPage() {
+    function BrandBrainPage({ archive, onArchiveSave }) {
       const [state, setState] = useState("saved_preview");
       const [uploadedItems, setUploadedItems] = useState([]);
-      const [archive, setArchive] = useState(SAMPLE_ARCHIVE);
 
       const handleInputStart = useCallback((text) => {
         setUploadedItems(p => [...p, { id: "text-" + Date.now(), type: "text", name: "用户输入", preview: text.slice(0, 50) + (text.length > 50 ? "…" : "") }]);
@@ -1945,18 +2437,18 @@
 
       const handleSaveEdit = useCallback((fields) => {
         const updater = { identity: `品牌定位：${fields.core}`, audience: fields.audience, tone: fields.persona, guardrails: fields.guardrails };
-        setArchive(prev => ({
-          ...prev,
-          sections: prev.sections.map(s => {
+        onArchiveSave({
+          ...archive,
+          sections: archive.sections.map(s => {
             if (s.id === "identity") return { ...s, content: [updater.identity] };
             if (s.id === "audience") return { ...s, content: [updater.audience] };
             if (s.id === "tone") return { ...s, content: [updater.tone] };
             if (s.id === "guardrails") return { ...s, content: [updater.guardrails] };
             return s;
           })
-        }));
+        });
         setState("saved_preview");
-      }, []);
+      }, [archive, onArchiveSave]);
 
       const handleCancelEdit = useCallback(() => setState("saved_preview"), []);
 
@@ -1970,7 +2462,7 @@
             {["chat_canvas_4_1", "chat_canvas_4_3", "chat_canvas_4_5"].includes(state) && (
               <ChatCanvasState archive={archive} onConfirm={handleConfirm} variant={state.replace("chat_canvas_", "").replace("_", ".")} />
             )}
-            {state === "saved_preview" && <SavedPreviewState archive={archive} onArchiveSave={(a) => setArchive(a)} />}
+            {state === "saved_preview" && <SavedPreviewState archive={archive} onArchiveSave={onArchiveSave} />}
             {state === "archive_edit" && (
               <BrandArchiveEditState
                 initialFields={getEditFieldsFromArchive(archive)}
@@ -1986,8 +2478,28 @@
     function App() {
       const [activeTab, setActiveTab] = useState("knowledge");
       const [saveFlyTrigger, setSaveFlyTrigger] = useState(0);
-      const handleSaveToBrand = useCallback(() => setSaveFlyTrigger(t => t + 1), []);
-      const handleSaveToChannels = useCallback(() => setActiveTab("channels"), []);
+      const [archive, setArchive] = useState(SAMPLE_ARCHIVE);
+      const [syncedChannelMatrix, setSyncedChannelMatrix] = useState(null);
+      const mergeMatrixIntoArchive = useCallback(() => {
+        const matrixSection = { id: "channel_matrix", title: "营销账号矩阵", content: [], matrixData: CHANNELS_MATRIX_PROPOSAL.map(p => ({ ...p, visualVoice: { ...p.visualVoice } })), sources: [] };
+        setArchive(prev => {
+          const hasMatrix = prev.sections.some(s => s.id === "channel_matrix");
+          const newSections = hasMatrix
+            ? prev.sections.map(s => s.id === "channel_matrix" ? { ...s, matrixData: CHANNELS_MATRIX_PROPOSAL.map(p => ({ ...p, visualVoice: { ...p.visualVoice } })) } : s)
+            : [...prev.sections, matrixSection];
+          return { ...prev, sections: newSections, updatedAt: new Date().toISOString().slice(0, 10) };
+        });
+      }, []);
+      const handleSaveToBrand = useCallback(() => {
+        mergeMatrixIntoArchive();
+        setSaveFlyTrigger(t => t + 1);
+      }, [mergeMatrixIntoArchive]);
+      const handleSaveToChannels = useCallback(() => {
+        const matrix = CHANNELS_MATRIX_PROPOSAL.map(p => ({ ...p, visualVoice: { ...p.visualVoice } }));
+        mergeMatrixIntoArchive();
+        setSyncedChannelMatrix(matrix);
+        setActiveTab("channels");
+      }, [mergeMatrixIntoArchive]);
       return (
         <div className="flex min-h-screen w-full flex-row">
           <StarFlyEffect trigger={saveFlyTrigger} />
@@ -1995,15 +2507,16 @@
           <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-auto">
             <main className="flex min-h-screen flex-1 flex-col overflow-auto bg-white">
               {activeTab === "knowledge" && <KnowledgePage onSaveToBrand={handleSaveToBrand} onSaveToChannels={handleSaveToChannels} />}
-              {activeTab === "brand" && <BrandBrainPage />}
-              {activeTab === "channels" && <ChannelsPage />}
+              {activeTab === "brand" && <BrandBrainPage archive={archive} onArchiveSave={setArchive} />}
+              {activeTab === "channels" && <ChannelsPage syncedChannelMatrix={syncedChannelMatrix} onSyncConsumed={() => setSyncedChannelMatrix(null)} />}
             </main>
           </div>
         </div>
       );
     }
 
-    ReactDOM.render(<App />, document.getElementById("root"));
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
   </script>
 </body>
 </html>
