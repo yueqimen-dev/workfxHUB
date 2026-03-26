@@ -13,15 +13,22 @@
 
 **方式二：本地服务器**（推荐）
 ```bash
+cd /path/to/workfxHUB-main
 ./run.sh
-# 或
-python3 -m http.server 3002
+# 指定端口：./run.sh 8080
+# 或手动：
+python3 -m http.server 3002 --bind 127.0.0.1
 ```
-访问 **http://localhost:3002**
+在浏览器打开 **http://127.0.0.1:3002/**（务必在项目根目录执行，且路径以 `/` 结尾更稳）
 
-若出现 Internal Server Error，可尝试：
-- 换用 `python3 -m http.server 3002`
-- 检查 3002 端口是否被占用：`lsof -i :3002`
+若出现 **Internal Server Error**，常见原因与处理：
+
+1. **没在项目根目录启动** — 终端先 `cd` 到包含 `index.html` 的目录再运行 `./run.sh`。
+2. **用 `localhost` 异常** — 改用 **http://127.0.0.1:3002/** 。
+3. **端口被占用** — 换端口：`./run.sh 8080` 或 `lsof -i :3002` 查看占用。
+4. **不依赖本地服务** — 可直接用浏览器打开项目里的 `index.html`（需联网加载 CDN）。
+
+仍失败时可在项目目录试：`python3 -m http.server 0 --bind 127.0.0.1`，终端会打印实际端口号。
 
 ### 五态交互
 

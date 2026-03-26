@@ -2086,7 +2086,7 @@
       const { t } = useI18n();
       if (!isOpen) return null;
       return (
-        <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+        <div className="absolute left-0 top-full z-[100] mt-1 w-72 rounded-lg border border-gray-200 bg-white py-2 shadow-lg" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
           <div className="absolute right-2 top-2">
             <button type="button" onClick={onClose} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
           </div>
@@ -2193,7 +2193,7 @@
       if (!isOpen) return null;
       const name = platformName || t("channels.bindTargetFallback");
       return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <button type="button" onClick={onClose} className="absolute -top-1 -right-1 rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-black">✕</button>
@@ -2546,7 +2546,7 @@
             platforms={platforms}
             onConfirm={handleAddAccountConfirm}
           />
-          {showChoicePopover && <div className="fixed inset-0 z-40" onClick={closeBindChoice} aria-hidden="true" />}
+          {/* 不再使用全屏透明层：否则会盖住 BindChoicePopover，导致浮层无法点击、表现为「点了没反应」；可用浮层右上角 ✕ 关闭 */}
           <SaveVerifyModal isOpen={saveVerifyOpen} onClose={closeSaveVerify} onBackToEdit={closeSaveVerify} onConfirm={confirmSaveAndExit} draft={editDraft} />
           <UnbindConfirmModal isOpen={!!unbindTarget} onClose={closeUnbindConfirm} onConfirm={handleUnbindConfirm} accountHandle={unbindTarget?.account?.handle} />
           <DeleteConfirmModal
@@ -2626,29 +2626,31 @@
                                 ) : (
                                   <>
                                     <button type="button" onClick={() => startEdit(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">{t("channels.edit")}</button>
-                                    {acc.needBind && (
-                                  <div className={`relative ${showChoicePopover && bindTarget?.account?.id === acc.id ? "z-50" : ""}`}>
-                                    <button type="button" onClick={() => handleBindClick(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">{t("channels.bind")}</button>
-                                    {showChoicePopover && bindTarget?.account?.id === acc.id && (
-                                      <BindChoicePopover
-                                        isOpen
-                                        mode={bindFlowState}
-                                        platform={bindTarget.platform}
-                                        linkedAccounts={linkedAccounts}
-                                        onShowPicker={handleShowPicker}
-                                        onBindToAccount={handleBindToAccount}
-                                        onSelectNew={handleSelectNew}
-                                        onBack={handleBackFromPicker}
-                                        onClose={closeBindChoice}
-                                      />
-                                    )}
-                                  </div>
-                                )}
-                                    {acc.status === "bound" && PLATFORMS_WITH_BIND.includes(platform.id) && (
-                                      <>
-                                        <button type="button" onClick={() => handleBindClick(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">{t("channels.swap")}</button>
-                                        <button type="button" onClick={() => openUnbindConfirm(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-600">{t("channels.unbind")}</button>
-                                      </>
+                                    {(acc.needBind || (acc.status === "bound" && PLATFORMS_WITH_BIND.includes(platform.id))) && (
+                                      <div className={`relative flex flex-wrap items-center gap-1 ${showChoicePopover && bindTarget?.account?.id === acc.id ? "z-[100]" : ""}`}>
+                                        {acc.needBind && (
+                                          <button type="button" onClick={() => handleBindClick(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">{t("channels.bind")}</button>
+                                        )}
+                                        {acc.status === "bound" && PLATFORMS_WITH_BIND.includes(platform.id) && (
+                                          <>
+                                            <button type="button" onClick={() => handleBindClick(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-black">{t("channels.swap")}</button>
+                                            <button type="button" onClick={() => openUnbindConfirm(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-600">{t("channels.unbind")}</button>
+                                          </>
+                                        )}
+                                        {showChoicePopover && bindTarget?.account?.id === acc.id && (
+                                          <BindChoicePopover
+                                            isOpen
+                                            mode={bindFlowState}
+                                            platform={bindTarget.platform}
+                                            linkedAccounts={linkedAccounts}
+                                            onShowPicker={handleShowPicker}
+                                            onBindToAccount={handleBindToAccount}
+                                            onSelectNew={handleSelectNew}
+                                            onBack={handleBackFromPicker}
+                                            onClose={closeBindChoice}
+                                          />
+                                        )}
+                                      </div>
                                     )}
                                     <button type="button" onClick={() => openDeleteAccount(platform, acc)} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-700">{t("channels.delAcc")}</button>
                                   </>
